@@ -28,4 +28,8 @@ package org.nettymvc.exception;
  * Intellij IDEA
  */
 public class ActionExecuteException extends RuntimeException {
+    
+    public ActionExecuteException(ReflectiveOperationException e) {
+    
+    }
 }

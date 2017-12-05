@@ -24,10 +24,13 @@
 package org.nettymvc.core;
 
 import io.netty.util.internal.StringUtil;
+import org.nettymvc.exception.ActionExecuteException;
 import org.nettymvc.exception.InitializeException;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.util.Enumeration;
@@ -40,7 +43,7 @@ import java.util.jar.JarFile;
  * Created by myan on 12/5/2017.
  * Intellij IDEA
  */
-public final class ClassTracker { // util for loading classes
+final class ClassTracker { // util for loading classes
     
     private static ClassLoader getClassLoader() {
         return Thread.currentThread().getContextClassLoader();
@@ -58,7 +61,7 @@ public final class ClassTracker { // util for loading classes
     }
     
     /*load classes under certain package*/
-    public static Set<Class<?>> loadClasses(String packageName) {
+    static Set<Class<?>> loadClasses(String packageName) {
         Set<Class<?>> classes = new HashSet<>();
         
         try {
@@ -125,5 +128,20 @@ public final class ClassTracker { // util for loading classes
                 addClass(classes, subPackageName, subPackagePath);
             }
         }
+    }
+    
+    /*do invoke method staff*/
+    static Object invokeMethod(Object target, Method method, Object... params) {
+        Object result;
+        try {
+            method.setAccessible(true);
+            if (method.getParameterCount() == 0 || params.length == 0)
+                result = method.invoke(target);
+            else
+                result = method.invoke(target, params);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            throw new ActionExecuteException(e);
+        }
+        return result;
     }
 }

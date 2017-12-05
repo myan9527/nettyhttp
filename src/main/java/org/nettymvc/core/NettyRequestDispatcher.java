@@ -49,6 +49,9 @@ import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
 import org.nettymvc.Constants;
+import org.nettymvc.annotation.RequestMethod;
+import org.nettymvc.data.QueryParam;
+import org.nettymvc.data.RequestParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,15 +116,23 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
                 uri = uri.substring(0, uri.indexOf("?"));
             LOGGER.info(String.format("Processing get request, path: %s", uri));
             // just process our query params
-//            for (Map.Entry<String, List<String>> attr : uriAttributes.entrySet()) {
-//                for (String attrVal : attr.getValue()) {
-//                    LOGGER.info(attr.getKey() + "=" + attrVal);
-//                    sb.append(attr.getKey()).append("=").append(attrVal).append("\r\n");
-//                }
-//            }
+            RequestParam params = new RequestParam();
+            for (Map.Entry<String, List<String>> attr : uriAttributes.entrySet()) {
+                params.add(new QueryParam(attr.getKey(), attr.getValue()));
+            }
             // search for mapped resource,send response to client
-            ByteBuf resp = Unpooled.copiedBuffer("Sample response", CharsetUtil.UTF_8);
-            HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, resp);
+            ActionHandler handler = routingContext.getActionHandler(uri, RequestMethod.GET);
+            HttpResponse response;
+            if(handler != null) {
+                // FIXME: just invoke the method and build response now. The target class should only be created once.
+                Object returnResult = ClassTracker.invokeMethod(handler.getRouter().newInstance(),
+                        handler.getMethod(), params);
+                ByteBuf responseContent = Unpooled.copiedBuffer(JSON.toJSON(returnResult).toString(), CharsetUtil.UTF_8);
+                response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, responseContent);
+            } else {
+                response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+                        HttpResponseStatus.NOT_FOUND, Unpooled.copiedBuffer(Constants.NOT_FOUND, CharsetUtil.UTF_8));
+            }
             ChannelFuture future = ctx.channel().write(response);
             if (!isKeepAlive(request)) {
                 future.addListener(ChannelFutureListener.CLOSE);

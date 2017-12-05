@@ -21,24 +21,26 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
  */
-package org.nettymvc;
+package org.nettymvc.data;
 
 /**
- * Created by myan on 12/4/2017.
+ * Created by myan on 12/5/2017.
  * Intellij IDEA
  */
-public interface Constants {
-    String FAVICON_ICO = "/favicon.ico";
+abstract class Param {
+    protected final String fieldName;
+    protected final Object fieldValue;
     
-    String CONNECTION_CLOSE = "close";
+    public String getFieldName() {
+        return fieldName;
+    }
     
-    String CONNECTION_KEEP_ALIVE = "keep-alive";
+    public Object getFieldValue() {
+        return fieldValue;
+    }
     
-    String JSON = "application/json";
-    
-    String FORM = "application/x-www-form-urlencoded";
-    
-    String MULTI_PART = "multipart/form-data";
-    
-    String NOT_FOUND= "Not found this url.";
+    Param(String fieldName, Object fieldValue) {
+        this.fieldName = fieldName;
+        this.fieldValue = fieldValue;
+    }
 }

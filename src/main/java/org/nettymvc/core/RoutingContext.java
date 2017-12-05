@@ -42,7 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Created by myan on 12/5/2017.
  * Intellij IDEA
  */
-public class RoutingContext {
+class RoutingContext {
     private static final Logger LOGGER = LoggerFactory.getLogger(RoutingContext.class);
     
     private final Object lock = new Object();
@@ -66,11 +66,11 @@ public class RoutingContext {
         init();
     }
     
-    public static RoutingContext getRoutingContext() {
+    static RoutingContext getRoutingContext() {
         return InstanceHolder.INSTANCE;
     }
     
-    public void init() {
+    void init() {
         if (!initialized) {
             // collect all annotation classes for only single thread.
             Set<Class<?>> classes = ClassTracker.loadClasses(basePackage);
@@ -105,11 +105,11 @@ public class RoutingContext {
         }
     }
     
-    public boolean isInitialized() {
+    boolean isInitialized() {
         return initialized;
     }
     
-    public ActionHandler getActionHandler(RequestMethod[] requestMethods, String path) {
+    ActionHandler getActionHandler(String path, RequestMethod... requestMethods) {
         for (Map.Entry<RoutingRequest, ActionHandler> entry : actionMap.entrySet()) {
             RequestMethod[] allowedMethods = entry.getKey().getRequestMethods();
             if (entry.getKey().getPath().equals(path)) {
