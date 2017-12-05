@@ -25,13 +25,21 @@ package org.tuling.handler;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.multipart.Attribute;
 import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory;
@@ -40,6 +48,8 @@ import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
 import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.tuling.Constants;
 
 import java.io.IOException;
@@ -52,6 +62,7 @@ import java.util.Map;
  */
 @ChannelHandler.Sharable
 public class RequestHandler extends ChannelInboundHandlerAdapter {
+    private static final Logger LOGGER = LoggerFactory.getLogger(RequestHandler.class);
     private HttpHeaders headers;
     // decode our post requests
     private HttpPostRequestDecoder decoder;
@@ -62,23 +73,43 @@ public class RequestHandler extends ChannelInboundHandlerAdapter {
         if (msg instanceof HttpRequest) {
             HttpRequest request = (HttpRequest) msg;
             headers = request.headers();
+            String uri = request.uri();
             
-            if (request.uri().equalsIgnoreCase(Constants.FAVICON_ICO))
+            if (uri.equalsIgnoreCase(Constants.FAVICON_ICO))
                 return; // discard the invalid request
             
             HttpMethod requestMethod = request.method();
             if (requestMethod.equals(HttpMethod.GET)) {
-                QueryStringDecoder queryDecoder = new QueryStringDecoder(request.uri(), CharsetUtil.UTF_8);
+                QueryStringDecoder queryDecoder = new QueryStringDecoder(uri, CharsetUtil.UTF_8);
                 Map<String, List<String>> uriAttributes = queryDecoder.parameters();
+                StringBuilder sb = new StringBuilder();
+                sb.append("====Request headers====\r\n");
+                for (Map.Entry<String, String> header : headers) {
+                    sb.append(header.getKey()).append(":").append(header.getValue()).append("\r\n");
+                }
+                if(uri.contains("?")) {
+                    uri = uri.substring(0, uri.indexOf("?"));
+                }
+                sb.append("Request uri:").append(uri).append("\r\n");
+                LOGGER.info(String.format("Processing get request, path: %s", uri));
                 // just process our query params
+                sb.append("====Query params====\r\n");
                 for (Map.Entry<String, List<String>> attr : uriAttributes.entrySet()) {
                     for (String attrVal : attr.getValue()) {
-                        System.out.println(attr.getKey() + "=" + attrVal);
+                        LOGGER.info(attr.getKey() + "=" + attrVal);
+                        sb.append(attr.getKey()).append("=").append(attrVal).append("\r\n");
                     }
+                }
+                // search for mapped resource,send response to client
+                ByteBuf resp = Unpooled.copiedBuffer(sb.toString(), CharsetUtil.UTF_8);
+                HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, resp);
+                ChannelFuture future = ctx.channel().write(response);
+                if(!isKeepAlive(request)) {
+                    future.addListener(ChannelFutureListener.CLOSE);
                 }
             } else if (requestMethod.equals(HttpMethod.POST)) {
                 // we need to cast this object for latter processing.
-                processPostRequest((FullHttpRequest) msg);
+                processPostRequest((FullHttpRequest) msg, ctx);
             } else {
                 throw new UnsupportedOperationException("We can not process such request at present.");
             }
@@ -88,13 +119,13 @@ public class RequestHandler extends ChannelInboundHandlerAdapter {
         
     }
     
-    private void processPostRequest(FullHttpRequest fullHttpRequest) throws IOException {
+    private void processPostRequest(FullHttpRequest fullHttpRequest, ChannelHandlerContext ctx) throws IOException {
         switch (getContentType()) {
             case Constants.JSON:
                 String content = fullHttpRequest.content().toString(CharsetUtil.UTF_8);
                 JSONObject object = JSON.parseObject(content);
                 for (Map.Entry<String, Object> entry : object.entrySet()) {
-                    System.out.println(entry.getKey() + ":" + entry.getValue().toString());
+                    LOGGER.info(entry.getKey() + ":" + entry.getValue().toString());
                 }
                 break;
             case Constants.FORM:
@@ -106,12 +137,13 @@ public class RequestHandler extends ChannelInboundHandlerAdapter {
                 for (InterfaceHttpData data : decoder.getBodyHttpDatas()) {
                     if(data.getHttpDataType() == InterfaceHttpData.HttpDataType.Attribute) {
                         Attribute attribute = (Attribute) data;
-                        System.out.println(attribute.getName() + "=" + attribute.getValue());
+                        LOGGER.info(attribute.getName() + "=" + attribute.getValue());
                     }
                 }
                 break;
             case Constants.MULTI_PART:
                 // process file upload here.
+                LOGGER.info("Processing uploaded files....");
                 break;
             default:
                 throw new UnsupportedOperationException("We can not process such request at present.");
@@ -131,5 +163,11 @@ public class RequestHandler extends ChannelInboundHandlerAdapter {
     
     private String getContentType() {
         return headers.get("Content-Type").split(";")[0];
+    }
+    
+    private boolean isKeepAlive(HttpRequest request) {
+        return headers.contains(org.apache.http.HttpHeaders.CONNECTION, Constants.CONNECTION_CLOSE, true) ||
+                (request.protocolVersion().equals(HttpVersion.HTTP_1_0) &&
+                        !headers.contains(org.apache.http.HttpHeaders.CONNECTION, Constants.CONNECTION_KEEP_ALIVE, true));
     }
 }

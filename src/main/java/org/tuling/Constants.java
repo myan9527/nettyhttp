@@ -30,6 +30,10 @@ package org.tuling;
 public interface Constants {
     String FAVICON_ICO = "/favicon.ico";
     
+    String CONNECTION_CLOSE = "close";
+    
+    String CONNECTION_KEEP_ALIVE = "keep-alive";
+    
     String JSON = "application/json";
     
     String FORM = "application/x-www-form-urlencoded";

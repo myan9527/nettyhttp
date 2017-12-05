@@ -13,6 +13,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
         <netty.version>4.1.14.Final</netty.version>
+        <logback.version>1.2.2</logback.version>
     </properties>
 
     <dependencies>
@@ -28,16 +29,18 @@
             <version>${netty.version}</version>
         </dependency>
 
+        <!--Http client support-->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.2</version>
+        </dependency>
+
         <!--logging support-->
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.7.25</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <version>2.8.2</version>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
         </dependency>
         <!--properties support-->
         <dependency>
@@ -67,5 +70,13 @@
             </plugin>
         </plugins>
     </build>
+
+    <developers>
+        <developer>
+            <name>Michael Yan</name>
+            <email>myanzhcn@gamil.com</email>
+            <url>https://github.com/TobeDeveloper/nettyhttp</url>
+        </developer>
+    </developers>
 
 </project>
