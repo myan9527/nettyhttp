@@ -47,7 +47,9 @@ class RoutingContext extends AbstractContext{
         private static final RoutingContext INSTANCE = new RoutingContext();
     }
     
-    private RoutingContext() { }
+    private RoutingContext() {
+        super();
+    }
     
     static RoutingContext getRoutingContext() {
         return InstanceHolder.INSTANCE;
