@@ -42,71 +42,15 @@ import java.util.concurrent.ConcurrentHashMap;
  * Created by myan on 12/5/2017.
  * Intellij IDEA
  */
-class RoutingContext {
-    private static final Logger LOGGER = LoggerFactory.getLogger(RoutingContext.class);
-    
-    private final Object lock = new Object();
-    
-    private volatile boolean initialized;
-    
-    private final String basePackage;
-    
-    // holds all routers.
-    private final Set<Class<?>> routers = new HashSet<>();
-    
-    private final Map<RoutingRequest, ActionHandler> actionMap = new ConcurrentHashMap<>();
-    
+class RoutingContext extends AbstractContext{
     private static class InstanceHolder{
         private static final RoutingContext INSTANCE = new RoutingContext();
     }
     
-    private RoutingContext() {
-        RoutingConfig config = ConfigFactory.create(RoutingConfig.class);
-        this.basePackage = config.basePackage();
-        init();
-    }
+    private RoutingContext() { }
     
     static RoutingContext getRoutingContext() {
         return InstanceHolder.INSTANCE;
-    }
-    
-    void init() {
-        if (!initialized) {
-            // collect all annotation classes for only single thread.
-            Set<Class<?>> classes = ClassTracker.loadClasses(basePackage);
-            synchronized (this.lock) {
-                for (Class<?> clazz : classes) {
-                    if (clazz.isAnnotationPresent(Router.class))
-                        routers.add(clazz);
-                }
-                // let's build action map for processing requests
-                if (!routers.isEmpty())
-                    buildActionMap();
-                this.initialized = true;
-            }
-        }
-    }
-    
-    private void buildActionMap() {
-        for (Class<?> router : routers) {
-            Method[] methods = router.getDeclaredMethods();
-            for (Method method : methods) {
-                if (method.isAnnotationPresent(Action.class)) {
-                    Action action = method.getAnnotation(Action.class);
-                    String path = action.value();
-                    RequestMethod[] requestMethods = action.method();
-                    RoutingRequest routingRequest = new RoutingRequest(path, requestMethods);
-                    ActionHandler handler = new ActionHandler(router, method);
-                    LOGGER.info(String.format("Mapped url %s for %s", path, method.getName()));
-                    this.actionMap.put(routingRequest, handler);
-                }
-            }
-            
-        }
-    }
-    
-    boolean isInitialized() {
-        return initialized;
     }
     
     ActionHandler getActionHandler(String path, RequestMethod... requestMethods) {
@@ -115,7 +59,6 @@ class RoutingContext {
             if (entry.getKey().getPath().equals(path)) {
                 if(Arrays.asList(allowedMethods).containsAll(Arrays.asList(requestMethods)))
                     return entry.getValue();
-               
             }
         }
         return null;

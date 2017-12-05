@@ -124,8 +124,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             ActionHandler handler = routingContext.getActionHandler(uri, RequestMethod.GET);
             HttpResponse response;
             if(handler != null) {
-                // FIXME: just invoke the method and build response now. The target class should only be created once.
-                Object returnResult = ClassTracker.invokeMethod(handler.getRouter().newInstance(),
+                Object returnResult = ClassTracker.invokeMethod(routingContext.getSingletons().get(handler.getRouter()),
                         handler.getMethod(), params);
                 ByteBuf responseContent = Unpooled.copiedBuffer(JSON.toJSON(returnResult).toString(), CharsetUtil.UTF_8);
                 response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, responseContent);
@@ -189,7 +188,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     }
     
     private String getContentType() {
-        return headers.get("Content-Type").split(";")[0];
+        return headers.get("Content-Type").split(":")[0];
     }
     
     private boolean isKeepAlive(HttpRequest request) {

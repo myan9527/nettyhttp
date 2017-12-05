@@ -144,4 +144,15 @@ final class ClassTracker { // util for loading classes
         }
         return result;
     }
+    
+    /*get instance of certain class*/
+    static Object newInstance(Class<?> clazz) {
+        Object instance;
+        try {
+            instance = clazz.newInstance();
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new InitializeException(e);
+        }
+        return instance;
+    }
 }
