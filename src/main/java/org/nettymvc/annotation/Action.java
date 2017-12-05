@@ -1,6 +1,4 @@
-package org.tuling.annotation;
-
-import io.netty.handler.codec.http.HttpMethod;
+package org.nettymvc.annotation;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -21,5 +19,5 @@ public @interface Action {
     
     String value();
     
-//    HttpMethod method() default ;
+    RequestMethod[] method() default {RequestMethod.GET};
 }

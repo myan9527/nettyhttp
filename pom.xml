@@ -54,6 +54,12 @@
             <artifactId>fastjson</artifactId>
             <version>1.2.41</version>
         </dependency>
+        <!--apache common-->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.6</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -76,6 +82,13 @@
             <name>Michael Yan</name>
             <email>myanzhcn@gamil.com</email>
             <url>https://github.com/TobeDeveloper/nettyhttp</url>
+        </developer>
+        <developer>
+            <name>Hannah Huo</name>
+            <email>huochenhui1008@163.com</email>
+            <roles>
+                <role>leader</role>
+            </roles>
         </developer>
     </developers>
 

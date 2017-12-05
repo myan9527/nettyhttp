@@ -21,19 +21,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.tuling.config;
-
-import org.aeonbits.owner.Config;
+package org.nettymvc;
 
 /**
  * Created by myan on 12/4/2017.
  * Intellij IDEA
  */
-
-@Config.Sources("classpath:config.properties")
-public interface ServerConfig extends Config {
-
-    @Config.Key("server.port")
-    @DefaultValue("8000")
-    int port();
+public interface Constants {
+    String FAVICON_ICO = "/favicon.ico";
+    
+    String CONNECTION_CLOSE = "close";
+    
+    String CONNECTION_KEEP_ALIVE = "keep-alive";
+    
+    String JSON = "application/json";
+    
+    String FORM = "application/x-www-form-urlencoded";
+    
+    String MULTI_PART = "multipart/form-data";
 }

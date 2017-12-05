@@ -21,11 +21,40 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.tuling.codec;
+package org.nettymvc.core;
+
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.nettymvc.annotation.RequestMethod;
 
 /**
- * Created by myan on 12/4/2017.
+ * Created by myan on 12/5/2017.
  * Intellij IDEA
  */
-public class HttpRequestCodec {
+public class RoutingRequest {
+    private final String path;
+    private final RequestMethod[] requestMethods;
+    
+    public RoutingRequest(String path, RequestMethod[] requestMethods) {
+        this.path = path;
+        this.requestMethods = requestMethods;
+    }
+    
+    public String getPath() {
+        return path;
+    }
+    
+    public RequestMethod[] getRequestMethods() {
+        return requestMethods;
+    }
+    
+    @Override
+    public int hashCode() {
+        return HashCodeBuilder.reflectionHashCode(this);
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+        return EqualsBuilder.reflectionEquals(this, obj);
+    }
 }

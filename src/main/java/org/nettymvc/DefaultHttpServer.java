@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package org.tuling;
+package org.nettymvc;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
@@ -34,10 +34,11 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import org.aeonbits.owner.ConfigFactory;
+import org.nettymvc.config.ServerConfig;
+import org.nettymvc.core.ActionHandler;
+import org.nettymvc.core.NettyRequestDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.tuling.config.ServerConfig;
-import org.tuling.handler.RequestHandler;
 
 /**
  * Created by myan on 12/4/2017.
@@ -47,14 +48,14 @@ public class DefaultHttpServer {
     private final int port;
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultHttpServer.class);
     
-    public DefaultHttpServer(int port) {
+    private DefaultHttpServer(int port) {
         this.port = port;
     }
     
     public static void main(String[] args) {
         ServerConfig config = ConfigFactory.create(ServerConfig.class);
         int port = config.port();
-        if(args.length > 0)
+        if (args.length > 0)
             port = Integer.parseInt(args[0]);
         try {
             new DefaultHttpServer(port).start();
@@ -68,7 +69,7 @@ public class DefaultHttpServer {
         // start the server here.
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
-    
+        
         try {
             ServerBootstrap serverBootstrap = new ServerBootstrap();
             serverBootstrap.group(bossGroup, workerGroup)
@@ -78,14 +79,14 @@ public class DefaultHttpServer {
                         protected void initChannel(SocketChannel channel) throws Exception {
                             channel.pipeline()
                                     .addLast("codec", new HttpServerCodec())
-                                    .addLast("post", new HttpObjectAggregator(1024*1024))
-                                    .addLast("handler", new RequestHandler());
+                                    .addLast("post", new HttpObjectAggregator(1024 * 1024))
+                                    .addLast("handler", new NettyRequestDispatcher());
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 1024)
                     .childOption(ChannelOption.SO_KEEPALIVE, true)
                     .childOption(ChannelOption.TCP_NODELAY, true);
-        
+            
             ChannelFuture future = serverBootstrap.bind(this.port).sync();
             LOGGER.info("Server starts at port:" + port);
             future.channel().closeFuture().sync();

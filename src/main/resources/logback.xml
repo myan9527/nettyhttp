@@ -6,8 +6,8 @@
         </layout>
     </appender>
 
-    <logger name="org.tuling">
-        <level value="INFO" />
+    <logger name="org.nettymvc">
+        <level value="INFO"/>
     </logger>
 
     <root level="info">
