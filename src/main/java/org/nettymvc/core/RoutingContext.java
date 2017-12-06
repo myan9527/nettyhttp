@@ -32,8 +32,8 @@ import java.util.Map;
  * Created by myan on 12/5/2017.
  * Intellij IDEA
  */
-class RoutingContext extends AbstractContext{
-    private static class InstanceHolder{
+class RoutingContext extends AbstractContext {
+    private static class InstanceHolder {
         private static final RoutingContext INSTANCE = new RoutingContext();
     }
     
@@ -49,7 +49,7 @@ class RoutingContext extends AbstractContext{
         for (Map.Entry<RoutingRequest, ActionHandler> entry : actionMap.entrySet()) {
             RequestMethod[] allowedMethods = entry.getKey().getRequestMethods();
             if (entry.getKey().getPath().equals(path)) {
-                if(Arrays.asList(allowedMethods).containsAll(Arrays.asList(requestMethods)))
+                if (Arrays.asList(allowedMethods).containsAll(Arrays.asList(requestMethods)))
                     return entry.getValue();
             }
         }

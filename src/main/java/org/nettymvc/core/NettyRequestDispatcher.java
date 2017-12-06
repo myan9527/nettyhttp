@@ -25,7 +25,6 @@ package org.nettymvc.core;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -34,10 +33,10 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
@@ -52,6 +51,8 @@ import org.nettymvc.Constants;
 import org.nettymvc.annotation.RequestMethod;
 import org.nettymvc.data.QueryParam;
 import org.nettymvc.data.RequestParam;
+import org.nettymvc.data.response.NettyResponse;
+import org.nettymvc.exception.InvalidResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +79,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         // check routing init status
-        if(!routingContext.isInitialized())
+        if (!routingContext.isInitialized())
             routingContext.init();
         // parse our request and send the mapped resource
         if (msg instanceof HttpRequest) {
@@ -119,8 +120,8 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             RequestParam params = new RequestParam();
             for (Map.Entry<String, List<String>> attr : uriAttributes.entrySet()) {
                 List<String> attrValue = attr.getValue();
-                if(attrValue != null) {
-                    if(attrValue.size() == 1)
+                if (attrValue != null) {
+                    if (attrValue.size() == 1)
                         params.add(new QueryParam(attr.getKey(), attrValue.get(0)));
                     else
                         params.add(new QueryParam(attr.getKey(), attrValue));
@@ -128,12 +129,17 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             }
             // search for mapped resource,send response to client
             ActionHandler handler = routingContext.getActionHandler(uri, RequestMethod.GET);
-            HttpResponse response;
-            if(handler != null) {
+            FullHttpResponse response = null;
+            if (handler != null) {
                 Object returnResult = ClassTracker.invokeMethod(routingContext.getSingletons().get(handler.getRouter()),
                         handler.getMethod(), params);
-                ByteBuf responseContent = Unpooled.copiedBuffer(JSON.toJSON(returnResult).toString(), CharsetUtil.UTF_8);
-                response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, responseContent);
+                if (returnResult instanceof NettyResponse) {
+                    // we should just return it.
+                    response = ((NettyResponse) returnResult).response();
+                } else {
+                    throw new InvalidResponseException("All response must be presented by NettyResponse!");
+                }
+                
             } else {
                 response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
                         HttpResponseStatus.NOT_FOUND, Unpooled.copiedBuffer(Constants.NOT_FOUND, CharsetUtil.UTF_8));
@@ -164,6 +170,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     
     private void processPostRequest(FullHttpRequest fullHttpRequest, ChannelHandlerContext ctx) throws IOException {
         switch (getContentType()) {
+            // TODO handle post request correctly
             case Constants.JSON:
                 String content = fullHttpRequest.content().toString(CharsetUtil.UTF_8);
                 JSONObject object = JSON.parseObject(content);

@@ -27,6 +27,8 @@ import org.nettymvc.annotation.Action;
 import org.nettymvc.annotation.RequestMethod;
 import org.nettymvc.annotation.Router;
 import org.nettymvc.data.RequestParam;
+import org.nettymvc.data.response.JsonResponse;
+import org.nettymvc.data.response.NettyResponse;
 
 import java.util.Date;
 
@@ -38,8 +40,10 @@ import java.util.Date;
 public class BasicRouter {
     
     @Action(value = "/act", method = {RequestMethod.GET})
-    public Object act(RequestParam param) {
-        System.out.println("Query params:"+ param.getInt("id"));
-        return new Date();
+    public NettyResponse act(RequestParam param) {
+        NettyResponse response = new JsonResponse();
+        response.put("date", new Date());
+        System.out.println("Query params:" + param.getInt("id"));
+        return response;
     }
 }

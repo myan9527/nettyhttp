@@ -35,4 +35,8 @@ public interface RoutingConfig extends Config {
     
     @Config.Key("router.basePackage")
     String basePackage();
+    
+    @Config.Key("response.type")
+    @DefaultValue("txt")
+    String responseType();
 }

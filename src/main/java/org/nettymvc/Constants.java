@@ -40,5 +40,5 @@ public interface Constants {
     
     String MULTI_PART = "multipart/form-data";
     
-    String NOT_FOUND= "Not found this url.";
+    String NOT_FOUND = "Not found this url.";
 }

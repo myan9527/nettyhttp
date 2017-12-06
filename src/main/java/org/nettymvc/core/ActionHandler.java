@@ -7,22 +7,22 @@ import java.lang.reflect.Method;
  * Intellij IDEA
  */
 
-public class ActionHandler {
+class ActionHandler {
     
     private final Class<?> router;
     
     private final Method method;
     
-    public ActionHandler(Class<?> router, Method method) {
+    ActionHandler(Class<?> router, Method method) {
         this.router = router;
         this.method = method;
     }
     
-    public Class<?> getRouter() {
+    Class<?> getRouter() {
         return router;
     }
     
-    public Method getMethod() {
+    Method getMethod() {
         return method;
     }
 }

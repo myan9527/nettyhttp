@@ -37,27 +37,23 @@ public class RequestParam {
     private List<Param> params;
     
     public void add(Param param) {
-        if(this.params == null || this.params.isEmpty())
+        if (this.params == null || this.params.isEmpty())
             params = new LinkedList<>();
         this.params.add(param);
     }
     
     private Map<String, Object> getFieldMap() {
         Map<String, Object> fieldMap = new HashMap<>();
-        if(this.params != null && !this.params.isEmpty()) {
+        if (this.params != null && !this.params.isEmpty()) {
             for (Param param : this.params) {
                 String fieldName = param.getFieldName();
                 Object fieldValue = param.getFieldValue();
-                if(fieldMap.containsKey(fieldName))
+                if (fieldMap.containsKey(fieldName))
                     fieldValue = fieldMap.get(fieldName) + "," + fieldValue;
                 fieldMap.put(fieldName, fieldValue);
             }
         }
         return fieldMap;
-    }
-    
-    public List<Param> getParams() {
-        return params;
     }
     
     public String getString(String fieldName) {

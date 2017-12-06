@@ -53,7 +53,7 @@ class AbstractContext {
     
     // holds all routers.
     private final Set<Class<?>> routers = new HashSet<>();
-    
+    // TODO holds all injected singletons, will enhance this IOC function.
     private final Map<Class<?>, Object> singletons = new HashMap<>();
     
     final Map<RoutingRequest, ActionHandler> actionMap = new ConcurrentHashMap<>();

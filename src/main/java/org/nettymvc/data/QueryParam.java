@@ -25,7 +25,8 @@ package org.nettymvc.data;
 
 /**
  * Created by myan on 12/5/2017.
- * Intellij IDEA
+ * Intellij IDEA<br/>
+ * Notice that: the default value has been given for non-exists parameter.
  */
 public class QueryParam extends Param {
     
