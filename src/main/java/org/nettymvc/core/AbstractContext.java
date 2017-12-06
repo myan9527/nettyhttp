@@ -92,7 +92,8 @@ class AbstractContext {
                     RequestMethod[] requestMethods = action.method();
                     RoutingRequest routingRequest = new RoutingRequest(path, requestMethods);
                     ActionHandler handler = new ActionHandler(router, method);
-                    LOGGER.info(String.format("Mapped url %s for %s", path, method.getName()));
+                    LOGGER.info(String.format("Mapped url \"%s\" for \"%s-%s()\"", path, router.getName(),
+                            method.getName()));
                     this.actionMap.put(routingRequest, handler);
                 }
             }

@@ -43,7 +43,16 @@ public class BasicRouter {
     public NettyResponse act(RequestParam param) {
         NettyResponse response = new JsonResponse();
         response.put("date", new Date());
+        response.put("name", "Michael Yan");
         System.out.println("Query params:" + param.getInt("id"));
+        return response;
+    }
+    
+    @Action(value="/post", method = {RequestMethod.POST})
+    public NettyResponse testPost(RequestParam param) {
+        NettyResponse response = new JsonResponse();
+        response.put("param", param);
+        response.put("date", new Date().toString());
         return response;
     }
 }

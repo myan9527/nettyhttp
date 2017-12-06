@@ -75,4 +75,8 @@ public class RequestParam {
     public long getLong(String fieldName) {
         return CastUtil.castLong(getFieldMap().get(fieldName));
     }
+    
+    public List<Param> getParams() {
+        return params;
+    }
 }

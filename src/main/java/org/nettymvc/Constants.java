@@ -23,6 +23,12 @@
  */
 package org.nettymvc;
 
+import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
+import io.netty.util.CharsetUtil;
+
 /**
  * Created by myan on 12/4/2017.
  * Intellij IDEA
@@ -40,5 +46,7 @@ public interface Constants {
     
     String MULTI_PART = "multipart/form-data";
     
-    String NOT_FOUND = "Not found this url.";
+    DefaultFullHttpResponse NOT_FOUND_RESPONSE = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+            HttpResponseStatus.NOT_FOUND,
+            Unpooled.copiedBuffer("Not found this url.", CharsetUtil.UTF_8));
 }

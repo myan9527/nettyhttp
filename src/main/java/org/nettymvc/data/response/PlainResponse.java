@@ -23,39 +23,21 @@
 */
 package org.nettymvc.data.response;
 
-import com.alibaba.fastjson.JSON;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
-import io.netty.util.CharsetUtil;
-import org.apache.http.HttpHeaders;
-import org.nettymvc.Constants;
 
 /**
  * Created by myan on 12/6/2017.
  * Intellij IDEA
  */
-public class JsonResponse extends NettyResponse {
-    
+public class PlainResponse extends NettyResponse {
     @Override
     public FullHttpResponse response() {
-        ByteBuf content = this.content();
-        DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, content);
-        response.headers().add(HttpHeaders.CONTENT_LENGTH, content.readableBytes());
-        response.headers().add(HttpHeaders.CONTENT_TYPE, Constants.JSON);
-        return response;
+        return null;
     }
     
     @Override
     protected ByteBuf content() {
-        if(this.contentMap != null) {
-            return Unpooled.copiedBuffer(JSON.toJSON(contentMap).toString(), CharsetUtil.UTF_8);
-        } else {
-            return Unpooled.EMPTY_BUFFER;
-        }
+        return null;
     }
-    
 }

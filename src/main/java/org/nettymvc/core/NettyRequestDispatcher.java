@@ -25,19 +25,16 @@ package org.nettymvc.core;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.multipart.Attribute;
@@ -49,6 +46,7 @@ import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
 import org.nettymvc.Constants;
 import org.nettymvc.annotation.RequestMethod;
+import org.nettymvc.data.FormParam;
 import org.nettymvc.data.QueryParam;
 import org.nettymvc.data.RequestParam;
 import org.nettymvc.data.response.NettyResponse;
@@ -105,55 +103,73 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     /*
    * process request:
    * 1.parse uri
-   * 2.load the action method from actionMap
-   * 3.invoke the action method and build our response
+   * 2.build the params
+   * 3.load the action method from actionMap -- move to doXXX method
+   * 4.invoke the action method and build our response
    */
     private void doDispatch(HttpRequest request, String uri, ChannelHandlerContext ctx) throws Exception {
         HttpMethod requestMethod = request.method();
+        RequestParam params = new RequestParam();
+        FullHttpResponse response;
+        uri = processQueryParams(uri, params);
         if (requestMethod.equals(HttpMethod.GET)) {
-            QueryStringDecoder queryDecoder = new QueryStringDecoder(uri, CharsetUtil.UTF_8);
-            Map<String, List<String>> uriAttributes = queryDecoder.parameters();
-            if (uri.contains("?"))
-                uri = uri.substring(0, uri.indexOf("?"));
-            LOGGER.info(String.format("Processing get request, path: %s", uri));
-            // just process our query params
-            RequestParam params = new RequestParam();
-            for (Map.Entry<String, List<String>> attr : uriAttributes.entrySet()) {
-                List<String> attrValue = attr.getValue();
-                if (attrValue != null) {
-                    if (attrValue.size() == 1)
-                        params.add(new QueryParam(attr.getKey(), attrValue.get(0)));
-                    else
-                        params.add(new QueryParam(attr.getKey(), attrValue));
-                }
-            }
             // search for mapped resource,send response to client
-            ActionHandler handler = routingContext.getActionHandler(uri, RequestMethod.GET);
-            FullHttpResponse response = null;
-            if (handler != null) {
-                Object returnResult = ClassTracker.invokeMethod(routingContext.getSingletons().get(handler.getRouter()),
-                        handler.getMethod(), params);
-                if (returnResult instanceof NettyResponse) {
-                    // we should just return it.
-                    response = ((NettyResponse) returnResult).response();
-                } else {
-                    throw new InvalidResponseException("All response must be presented by NettyResponse!");
-                }
-                
-            } else {
-                response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-                        HttpResponseStatus.NOT_FOUND, Unpooled.copiedBuffer(Constants.NOT_FOUND, CharsetUtil.UTF_8));
-            }
+            response = doGet(uri, params);
+        } else if (requestMethod.equals(HttpMethod.POST)) {
+            // we need to cast this object for latter processing.
+            response = doPost((FullHttpRequest) request, uri, params);
+        } else {
+            throw new UnsupportedOperationException("We can not process such request at present.");
+        }
+        // write response
+        if(response != null) {
             ChannelFuture future = ctx.channel().write(response);
             if (!isKeepAlive(request)) {
                 future.addListener(ChannelFutureListener.CLOSE);
             }
-        } else if (requestMethod.equals(HttpMethod.POST)) {
-            // we need to cast this object for latter processing.
-            processPostRequest((FullHttpRequest) request, ctx);
-        } else {
-            throw new UnsupportedOperationException("We can not process such request at present.");
         }
+    }
+    
+    private FullHttpResponse doGet(String uri, RequestParam params) {
+        ActionHandler handler = routingContext.getActionHandler(uri, RequestMethod.GET);
+        return getResponse(params, handler);
+    }
+    
+    private FullHttpResponse getResponse(RequestParam params, ActionHandler handler) {
+        FullHttpResponse response;
+        if(handler != null) {
+            Object returnResult = ClassTracker.invokeMethod(routingContext.getSingletons().get(handler.getRouter()),
+                    handler.getMethod(), params);
+            if (returnResult instanceof NettyResponse) {
+                // we should just return it.
+                response = ((NettyResponse) returnResult).response();
+            } else {
+                throw new InvalidResponseException("All response must be presented by NettyResponse!");
+            }
+        } else {
+            response = Constants.NOT_FOUND_RESPONSE;
+        }
+        return response;
+    }
+    
+    private String processQueryParams(String uri, RequestParam params) {
+        QueryStringDecoder queryDecoder = new QueryStringDecoder(uri, CharsetUtil.UTF_8);
+        Map<String, List<String>> uriAttributes = queryDecoder.parameters();
+        if (uri.contains("?")) {
+            uri = uri.substring(0, uri.indexOf("?"));
+        }
+        LOGGER.info(String.format("Processing get request, path: %s", uri));
+        // just process our query params
+        for (Map.Entry<String, List<String>> attr : uriAttributes.entrySet()) {
+            List<String> attrValue = attr.getValue();
+            if (attrValue != null) {
+                if (attrValue.size() == 1)
+                    params.add(new QueryParam(attr.getKey(), attrValue.get(0)));
+                else
+                    params.add(new QueryParam(attr.getKey(), attrValue));
+            }
+        }
+        return uri;
     }
     
     @Override
@@ -165,17 +181,22 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         cause.printStackTrace();
         LOGGER.error(cause.getMessage());
+        // TODO write exception response to client.
         ctx.close();
     }
     
-    private void processPostRequest(FullHttpRequest fullHttpRequest, ChannelHandlerContext ctx) throws IOException {
-        switch (getContentType()) {
-            // TODO handle post request correctly
+    private FullHttpResponse doPost(FullHttpRequest fullHttpRequest, String uri, RequestParam params) throws IOException {
+        ActionHandler handler = this.routingContext.getActionHandler(uri, RequestMethod.POST);
+        // process our params first
+        switch (getRequestContentType()) {
+            // process different type of params.
             case Constants.JSON:
                 String content = fullHttpRequest.content().toString(CharsetUtil.UTF_8);
                 JSONObject object = JSON.parseObject(content);
-                for (Map.Entry<String, Object> entry : object.entrySet()) {
-                    LOGGER.info(entry.getKey() + ":" + entry.getValue().toString());
+                if(object != null) {
+                    for (Map.Entry<String, Object> entry : object.entrySet()) {
+                        params.add(new FormParam(entry.getKey(),entry.getValue()));
+                    }
                 }
                 break;
             case Constants.FORM:
@@ -187,7 +208,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
                 for (InterfaceHttpData data : decoder.getBodyHttpDatas()) {
                     if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.Attribute) {
                         Attribute attribute = (Attribute) data;
-                        LOGGER.info(attribute.getName() + "=" + attribute.getValue());
+                        params.add(new FormParam(attribute.getName(), attribute.getValue()));
                     }
                 }
                 break;
@@ -198,9 +219,10 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             default:
                 throw new UnsupportedOperationException("We can not process such request at present.");
         }
+        return getResponse(params, handler);
     }
     
-    private String getContentType() {
+    private String getRequestContentType() {
         return headers.get("Content-Type").split(":")[0];
     }
     
