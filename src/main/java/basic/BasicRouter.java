@@ -26,6 +26,7 @@ package basic;
 import org.nettymvc.annotation.Action;
 import org.nettymvc.annotation.RequestMethod;
 import org.nettymvc.annotation.Router;
+import org.nettymvc.data.RequestParam;
 
 import java.util.Date;
 
@@ -37,7 +38,8 @@ import java.util.Date;
 public class BasicRouter {
     
     @Action(value = "/act", method = {RequestMethod.GET})
-    public Object act() {
+    public Object act(RequestParam param) {
+        System.out.println("Query params:"+ param.getInt("id"));
         return new Date();
     }
 }

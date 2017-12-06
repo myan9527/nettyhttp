@@ -28,14 +28,14 @@ package org.nettymvc.data;
  * Intellij IDEA
  */
 abstract class Param {
-    protected final String fieldName;
-    protected final Object fieldValue;
+    private final String fieldName;
+    private final Object fieldValue;
     
-    public String getFieldName() {
+    String getFieldName() {
         return fieldName;
     }
     
-    public Object getFieldValue() {
+    Object getFieldValue() {
         return fieldValue;
     }
     

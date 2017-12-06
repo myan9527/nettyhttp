@@ -35,7 +35,6 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import org.aeonbits.owner.ConfigFactory;
 import org.nettymvc.config.ServerConfig;
-import org.nettymvc.core.ActionHandler;
 import org.nettymvc.core.NettyRequestDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -23,20 +23,10 @@
  */
 package org.nettymvc.core;
 
-import org.aeonbits.owner.ConfigFactory;
-import org.nettymvc.annotation.Action;
 import org.nettymvc.annotation.RequestMethod;
-import org.nettymvc.annotation.Router;
-import org.nettymvc.config.RoutingConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by myan on 12/5/2017.

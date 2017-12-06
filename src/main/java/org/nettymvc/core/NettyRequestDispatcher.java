@@ -118,7 +118,13 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             // just process our query params
             RequestParam params = new RequestParam();
             for (Map.Entry<String, List<String>> attr : uriAttributes.entrySet()) {
-                params.add(new QueryParam(attr.getKey(), attr.getValue()));
+                List<String> attrValue = attr.getValue();
+                if(attrValue != null) {
+                    if(attrValue.size() == 1)
+                        params.add(new QueryParam(attr.getKey(), attrValue.get(0)));
+                    else
+                        params.add(new QueryParam(attr.getKey(), attrValue));
+                }
             }
             // search for mapped resource,send response to client
             ActionHandler handler = routingContext.getActionHandler(uri, RequestMethod.GET);
