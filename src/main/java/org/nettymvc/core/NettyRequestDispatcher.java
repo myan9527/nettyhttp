@@ -124,7 +124,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
         // write response
         if(response != null) {
             ChannelFuture future = ctx.channel().write(response);
-            if (!isKeepAlive(request)) {
+            if (!isShortConnection(request)) {
                 future.addListener(ChannelFutureListener.CLOSE);
             }
         }
@@ -226,7 +226,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
         return headers.get("Content-Type").split(":")[0];
     }
     
-    private boolean isKeepAlive(HttpRequest request) {
+    private boolean isShortConnection(HttpRequest request) {
         return headers.contains(org.apache.http.HttpHeaders.CONNECTION, Constants.CONNECTION_CLOSE, true) ||
                 (request.protocolVersion().equals(HttpVersion.HTTP_1_0) &&
                         !headers.contains(org.apache.http.HttpHeaders.CONNECTION, Constants.CONNECTION_KEEP_ALIVE, true));
