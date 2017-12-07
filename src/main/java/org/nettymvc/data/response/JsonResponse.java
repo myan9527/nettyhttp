@@ -31,8 +31,8 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
-import org.apache.http.HttpHeaders;
 import org.nettymvc.Constants;
+import org.nettymvc.data.HttpHeaderConstants;
 
 /**
  * Created by myan on 12/6/2017.
@@ -44,14 +44,14 @@ public class JsonResponse extends NettyResponse {
     public FullHttpResponse response() {
         ByteBuf content = this.content();
         DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, content);
-        response.headers().add(HttpHeaders.CONTENT_LENGTH, content.readableBytes());
-        response.headers().add(HttpHeaders.CONTENT_TYPE, Constants.JSON);
+        response.headers().add(HttpHeaderConstants.CONTENT_LENGTH, content.readableBytes());
+        response.headers().add(HttpHeaderConstants.CONTENT_TYPE, Constants.JSON);
         return response;
     }
     
     @Override
     protected ByteBuf content() {
-        if(this.contentMap != null) {
+        if(this.contentMap != null && !this.contentMap.isEmpty()) {
             return Unpooled.copiedBuffer(JSON.toJSON(contentMap).toString(), CharsetUtil.UTF_8);
         } else {
             return Unpooled.EMPTY_BUFFER;

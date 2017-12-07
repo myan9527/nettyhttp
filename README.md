@@ -1,10 +1,9 @@
 # Http server and mvc framework with netty.
 
-Some 3-rd libraries:
+Used 3-rd party libraries:
 - Netty
 - Fastjson
 - Logback
-- Apache httpclient
 - Owner
 - Apache commons
 

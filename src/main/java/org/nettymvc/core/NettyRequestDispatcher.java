@@ -47,6 +47,7 @@ import io.netty.util.ReferenceCountUtil;
 import org.nettymvc.Constants;
 import org.nettymvc.annotation.RequestMethod;
 import org.nettymvc.data.FormParam;
+import org.nettymvc.data.HttpHeaderConstants;
 import org.nettymvc.data.QueryParam;
 import org.nettymvc.data.RequestParam;
 import org.nettymvc.data.response.NettyResponse;
@@ -227,8 +228,8 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     }
     
     private boolean isShortConnection(HttpRequest request) {
-        return headers.contains(org.apache.http.HttpHeaders.CONNECTION, Constants.CONNECTION_CLOSE, true) ||
+        return headers.contains(HttpHeaderConstants.CONNECTION, Constants.CONNECTION_CLOSE, true) ||
                 (request.protocolVersion().equals(HttpVersion.HTTP_1_0) &&
-                        !headers.contains(org.apache.http.HttpHeaders.CONNECTION, Constants.CONNECTION_KEEP_ALIVE, true));
+                        !headers.contains(HttpHeaderConstants.CONNECTION, Constants.CONNECTION_KEEP_ALIVE, true));
     }
 }
