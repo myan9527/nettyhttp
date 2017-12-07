@@ -20,5 +20,5 @@ after_success:
 #  project: ci-starter
 #  on:
 #    all_branches: true
-after_deploy:
-  - echo "====Deploy successfully!===="
+#after_deploy:
+#  - echo "====Deploy successfully!===="
