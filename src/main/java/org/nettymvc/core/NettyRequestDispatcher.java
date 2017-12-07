@@ -25,16 +25,20 @@ package org.nettymvc.core;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.multipart.Attribute;
@@ -95,6 +99,9 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
                 LOGGER.error("Error occur:", e);
                 ReferenceCountUtil.release(msg);
                 throw e;
+            } finally {
+                // avoid OOM.
+                ((ByteBuf) msg).release();
             }
         } else {
             ReferenceCountUtil.release(msg);// discard this request directly.
@@ -123,7 +130,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             throw new UnsupportedOperationException("We can not process such request at present.");
         }
         // write response
-        if(response != null) {
+        if (response != null) {
             ChannelFuture future = ctx.channel().write(response);
             if (!isShortConnection(request)) {
                 future.addListener(ChannelFutureListener.CLOSE);
@@ -137,20 +144,17 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     }
     
     private FullHttpResponse getResponse(RequestParam params, ActionHandler handler) {
-        FullHttpResponse response;
-        if(handler != null) {
+        if (handler != null) {
             Object returnResult = ClassTracker.invokeMethod(routingContext.getSingletons().get(handler.getRouter()),
                     handler.getMethod(), params);
             if (returnResult instanceof NettyResponse) {
-                // we should just return it.
-                response = ((NettyResponse) returnResult).response();
+                return ((NettyResponse) returnResult).response();
             } else {
                 throw new InvalidResponseException("All response must be presented by NettyResponse!");
             }
         } else {
-            response = Constants.NOT_FOUND_RESPONSE;
+            return Constants.NOT_FOUND_RESPONSE;
         }
-        return response;
     }
     
     private String processQueryParams(String uri, RequestParam params) {
@@ -160,7 +164,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             uri = uri.substring(0, uri.indexOf("?"));
         }
         LOGGER.info(String.format("Processing get request, path: %s", uri));
-        // just process our query params
+        // just process url query params
         for (Map.Entry<String, List<String>> attr : uriAttributes.entrySet()) {
             List<String> attrValue = attr.getValue();
             if (attrValue != null) {
@@ -181,22 +185,23 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         cause.printStackTrace();
-        LOGGER.error(cause.getMessage());
-        // TODO write exception response to client.
+        FullHttpResponse exceptionResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+                HttpResponseStatus.INTERNAL_SERVER_ERROR,
+                Unpooled.copiedBuffer(cause.getMessage(), CharsetUtil.UTF_8));
+        ctx.channel().writeAndFlush(exceptionResponse);
         ctx.close();
     }
     
     private FullHttpResponse doPost(FullHttpRequest fullHttpRequest, String uri, RequestParam params) throws IOException {
         ActionHandler handler = this.routingContext.getActionHandler(uri, RequestMethod.POST);
-        // process our params first
         switch (getRequestContentType()) {
             // process different type of params.
             case Constants.JSON:
                 String content = fullHttpRequest.content().toString(CharsetUtil.UTF_8);
                 JSONObject object = JSON.parseObject(content);
-                if(object != null) {
+                if (object != null) {
                     for (Map.Entry<String, Object> entry : object.entrySet()) {
-                        params.add(new FormParam(entry.getKey(),entry.getValue()));
+                        params.add(new FormParam(entry.getKey(), entry.getValue()));
                     }
                 }
                 break;
@@ -214,7 +219,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
                 }
                 break;
             case Constants.MULTI_PART:
-                // process file upload here.
+                // process binary parameters.
                 LOGGER.info("Processing uploaded files....");
                 break;
             default:
@@ -224,7 +229,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     }
     
     private String getRequestContentType() {
-        return headers.get("Content-Type").split(":")[0];
+        return headers.get(Constants.CONTENT_TYPE).split(":")[0];
     }
     
     private boolean isShortConnection(HttpRequest request) {
