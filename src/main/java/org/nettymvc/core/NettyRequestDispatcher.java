@@ -100,9 +100,6 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
                 LOGGER.error("Error occur:", e);
                 ReferenceCountUtil.release(msg);
                 throw e;
-            } finally {
-                // avoid OOM.
-                ((ByteBuf) msg).release();
             }
         } else {
             ReferenceCountUtil.release(msg);// discard this request directly.
