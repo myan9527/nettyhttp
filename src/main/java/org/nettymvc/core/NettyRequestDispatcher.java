@@ -73,7 +73,8 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     
     private final RoutingContext routingContext = RoutingContext.getRoutingContext();
     
-    private HttpHeaders headers;
+    private final ThreadLocal<HttpHeaders> headers = new ThreadLocal<>();
+    private final ThreadLocal<HttpRequest> request = new ThreadLocal<>();
     
     // decode our post requests
     private HttpPostRequestDecoder decoder;
@@ -86,15 +87,15 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             routingContext.init();
         // parse our request and send the mapped resource
         if (msg instanceof HttpRequest) {
-            HttpRequest request = (HttpRequest) msg;
-            headers = request.headers();
-            String uri = request.uri();
+            request.set((HttpRequest) msg);
+            headers.set(request.get().headers());
+            String uri = request.get().uri();
             
             if (uri.equalsIgnoreCase(Constants.FAVICON_ICO))
                 return; // discard the invalid request
             
             try {
-                doDispatch(request, uri, ctx);
+                doDispatch(request.get(), uri, ctx);
             } catch (Throwable e) {
                 LOGGER.error("Error occur:", e);
                 ReferenceCountUtil.release(msg);
@@ -132,7 +133,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
         // write response
         if (response != null) {
             ChannelFuture future = ctx.channel().write(response);
-            if (!isShortConnection(request)) {
+            if (!isShortConnection()) {
                 future.addListener(ChannelFutureListener.CLOSE);
             }
         }
@@ -229,12 +230,12 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     }
     
     private String getRequestContentType() {
-        return headers.get(Constants.CONTENT_TYPE).split(":")[0];
+        return headers.get().get(Constants.CONTENT_TYPE).split(":")[0];
     }
     
-    private boolean isShortConnection(HttpRequest request) {
-        return headers.contains(HttpHeaderConstants.CONNECTION, Constants.CONNECTION_CLOSE, true) ||
-                (request.protocolVersion().equals(HttpVersion.HTTP_1_0) &&
-                        !headers.contains(HttpHeaderConstants.CONNECTION, Constants.CONNECTION_KEEP_ALIVE, true));
+    private boolean isShortConnection() {
+        return headers.get().contains(HttpHeaderConstants.CONNECTION, Constants.CONNECTION_CLOSE, true) ||
+                (request.get().protocolVersion().equals(HttpVersion.HTTP_1_0) &&
+                        !headers.get().contains(HttpHeaderConstants.CONNECTION, Constants.CONNECTION_KEEP_ALIVE, true));
     }
 }
