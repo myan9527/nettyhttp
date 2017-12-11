@@ -30,6 +30,6 @@ package org.nettymvc.exception;
 public class InitializeException extends RuntimeException {
     
     public InitializeException(Exception e) {
-    
+        super(ExceptionMessage.INITIALIZE_ERROR.getMessage(), e);
     }
 }

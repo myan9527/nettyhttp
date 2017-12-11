@@ -25,7 +25,6 @@ package org.nettymvc.core;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -55,6 +54,7 @@ import org.nettymvc.data.HttpHeaderConstants;
 import org.nettymvc.data.QueryParam;
 import org.nettymvc.data.RequestParam;
 import org.nettymvc.data.response.NettyResponse;
+import org.nettymvc.exception.InvalidRequestException;
 import org.nettymvc.exception.InvalidResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,8 +73,11 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     
     private final RoutingContext routingContext = RoutingContext.getRoutingContext();
     
-    private final ThreadLocal<HttpHeaders> headers = new ThreadLocal<>();
     private final ThreadLocal<HttpRequest> request = new ThreadLocal<>();
+    private final ThreadLocal<HttpHeaders> headers = ThreadLocal.withInitial(() -> {
+        HttpRequest req = request.get();
+        return req != null ? req.headers() : null;
+    });
     
     // decode our post requests
     private HttpPostRequestDecoder decoder;
@@ -97,9 +100,11 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             try {
                 doDispatch(request.get(), uri, ctx);
             } catch (Throwable e) {
-                LOGGER.error("Error occur:", e);
-                ReferenceCountUtil.release(msg);
+                LOGGER.error("Error occurs:", e);
                 throw e;
+            } finally {
+                // avoid OOM
+                ReferenceCountUtil.release(msg);
             }
         } else {
             ReferenceCountUtil.release(msg);// discard this request directly.
@@ -125,7 +130,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             // we need to cast this object for latter processing.
             response = doPost((FullHttpRequest) request, uri, params);
         } else {
-            throw new UnsupportedOperationException("We can not process such request at present.");
+            throw new InvalidRequestException();
         }
         // write response
         if (response != null) {
@@ -148,7 +153,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             if (returnResult instanceof NettyResponse) {
                 return ((NettyResponse) returnResult).response();
             } else {
-                throw new InvalidResponseException("All response must be presented by NettyResponse!");
+                throw new InvalidResponseException();
             }
         } else {
             return Constants.NOT_FOUND_RESPONSE;
@@ -161,7 +166,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
         if (uri.contains("?")) {
             uri = uri.substring(0, uri.indexOf("?"));
         }
-        LOGGER.info(String.format("Processing get request, path: %s", uri));
+        LOGGER.info(String.format("Processing request for path: %s", uri));
         // just process url query params
         for (Map.Entry<String, List<String>> attr : uriAttributes.entrySet()) {
             List<String> attrValue = attr.getValue();
