@@ -34,6 +34,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
@@ -42,15 +43,17 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.multipart.Attribute;
 import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory;
+import io.netty.handler.codec.http.multipart.FileUpload;
 import io.netty.handler.codec.http.multipart.HttpDataFactory;
+import io.netty.handler.codec.http.multipart.HttpPostMultipartRequestDecoder;
 import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
 import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
 import org.nettymvc.Constants;
 import org.nettymvc.annotation.RequestMethod;
+import org.nettymvc.data.FileParam;
 import org.nettymvc.data.FormParam;
-import org.nettymvc.data.HttpHeaderConstants;
 import org.nettymvc.data.QueryParam;
 import org.nettymvc.data.RequestParam;
 import org.nettymvc.data.response.NettyResponse;
@@ -59,6 +62,7 @@ import org.nettymvc.exception.InvalidResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -112,12 +116,12 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     }
     
     /*
-   * process request:
-   * 1.parse uri
-   * 2.build the params
-   * 3.load the action method from actionMap -- move to doXXX method
-   * 4.invoke the action method and build our response
-   */
+     * process request:
+     * 1.parse uri
+     * 2.build the params
+     * 3.load the action method from actionMap -- move to doXXX method
+     * 4.invoke the action method and build our response
+     */
     private void doDispatch(HttpRequest request, String uri, ChannelHandlerContext ctx) throws Exception {
         HttpMethod requestMethod = request.method();
         RequestParam params = new RequestParam();
@@ -128,7 +132,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             response = doGet(uri, params);
         } else if (requestMethod.equals(HttpMethod.POST)) {
             // we need to cast this object for latter processing.
-            response = doPost((FullHttpRequest) request, uri, params);
+            response = doPost(request, uri, params);
         } else {
             throw new InvalidRequestException();
         }
@@ -195,12 +199,13 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
         ctx.close();
     }
     
-    private FullHttpResponse doPost(FullHttpRequest fullHttpRequest, String uri, RequestParam params) throws IOException {
+    private FullHttpResponse doPost(HttpRequest request, String uri, RequestParam params) throws IOException {
         ActionHandler handler = this.routingContext.getActionHandler(uri, RequestMethod.POST);
         switch (getRequestContentType()) {
             // process different type of params.
             case Constants.JSON:
-                String content = fullHttpRequest.content().toString(CharsetUtil.UTF_8);
+                // cast here for content processing.
+                String content = ((FullHttpRequest)request).content().toString(CharsetUtil.UTF_8);
                 JSONObject object = JSON.parseObject(content);
                 if (object != null) {
                     for (Map.Entry<String, Object> entry : object.entrySet()) {
@@ -213,7 +218,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
                     decoder.cleanFiles();
                     decoder = null;
                 }
-                decoder = new HttpPostRequestDecoder(FACTORY, fullHttpRequest, CharsetUtil.UTF_8);
+                decoder = new HttpPostRequestDecoder(FACTORY, request, CharsetUtil.UTF_8);
                 for (InterfaceHttpData data : decoder.getBodyHttpDatas()) {
                     if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.Attribute) {
                         Attribute attribute = (Attribute) data;
@@ -223,21 +228,37 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
                 break;
             case Constants.MULTI_PART:
                 // process binary parameters.
-                LOGGER.info("Processing uploaded files....");
+                HttpPostMultipartRequestDecoder multipartRequestDecoder = new HttpPostMultipartRequestDecoder(FACTORY,
+                        request, CharsetUtil.UTF_8);
+                for (InterfaceHttpData data : multipartRequestDecoder.getBodyHttpDatas()) {
+                    if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.FileUpload) {
+                        FileUpload fileUpload = (FileUpload) data;
+                        if (fileUpload.isCompleted()) {
+                            String fileName = fileUpload.getFilename();
+                            // just create the disk file here.
+                            fileUpload.renameTo(new File(Constants.UPLOAD_PATH + fileName));
+                            params.add(new FileParam(fileName, data));
+                        }
+                    }
+                }
                 break;
             default:
-                throw new UnsupportedOperationException("We can not process such request at present.");
+                throw new InvalidRequestException();
         }
         return getResponse(params, handler);
     }
     
     private String getRequestContentType() {
-        return headers.get().get(Constants.CONTENT_TYPE).split(":")[0];
+        // refer to https://stackoverflow.com/questions/3508338/what-is-the-boundary-in-multipart-form-data
+        String contentType = headers.get().get(Constants.CONTENT_TYPE).split(":")[0];
+        if(contentType.indexOf(";") != 0)
+            return contentType.substring(0, contentType.indexOf(";"));
+        return contentType;
     }
     
     private boolean isShortConnection() {
-        return headers.get().contains(HttpHeaderConstants.CONNECTION, Constants.CONNECTION_CLOSE, true) ||
+        return headers.get().contains(HttpHeaderNames.CONNECTION, Constants.CONNECTION_CLOSE, true) ||
                 (request.get().protocolVersion().equals(HttpVersion.HTTP_1_0) &&
-                        !headers.get().contains(HttpHeaderConstants.CONNECTION, Constants.CONNECTION_KEEP_ALIVE, true));
+                        !headers.get().contains(HttpHeaderNames.CONNECTION, Constants.CONNECTION_KEEP_ALIVE, true));
     }
 }

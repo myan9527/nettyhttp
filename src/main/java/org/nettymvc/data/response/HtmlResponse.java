@@ -31,6 +31,7 @@ import io.netty.handler.codec.http.FullHttpResponse;
  * Intellij IDEA
  */
 public class HtmlResponse extends NettyResponse {
+    // There is long way togo to support html view.
     @Override
     public FullHttpResponse response() {
         return null;

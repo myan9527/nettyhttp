@@ -75,9 +75,10 @@ public class DefaultHttpServer {
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
-                        protected void initChannel(SocketChannel channel) throws Exception {
+                        protected void initChannel(SocketChannel channel) {
                             channel.pipeline()
                                     .addLast("codec", new HttpServerCodec())
+                                    // add for post request
                                     .addLast("post", new HttpObjectAggregator(1024 * 1024))
                                     .addLast("handler", new NettyRequestDispatcher());
                         }
