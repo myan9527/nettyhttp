@@ -48,8 +48,6 @@ public interface Constants {
     
     String MULTI_PART = "multipart/form-data";
     
-    String UPLOAD_PATH = "/temp/";
-    
     DefaultFullHttpResponse NOT_FOUND_RESPONSE = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
             HttpResponseStatus.NOT_FOUND,
             Unpooled.copiedBuffer("Not found this url.", CharsetUtil.UTF_8));

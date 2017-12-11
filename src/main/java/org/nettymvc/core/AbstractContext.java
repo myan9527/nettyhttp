@@ -27,7 +27,7 @@ import org.aeonbits.owner.ConfigFactory;
 import org.nettymvc.annotation.Action;
 import org.nettymvc.annotation.RequestMethod;
 import org.nettymvc.annotation.Router;
-import org.nettymvc.config.RoutingConfig;
+import org.nettymvc.config.ServerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +51,8 @@ class AbstractContext {
     
     private final String basePackage;
     
+    final String uploadPath;
+    
     // holds all routers.
     private final Set<Class<?>> routers = new HashSet<>();
     // TODO holds all injected singletons, will enhance this IOC function.
@@ -59,8 +61,9 @@ class AbstractContext {
     final Map<RoutingRequest, ActionHandler> actionMap = new ConcurrentHashMap<>();
     
     AbstractContext() {
-        RoutingConfig config = ConfigFactory.create(RoutingConfig.class);
+        ServerConfig config = ConfigFactory.create(ServerConfig.class);
         this.basePackage = config.basePackage();
+        this.uploadPath = config.uploadPath();
         init();
     }
     

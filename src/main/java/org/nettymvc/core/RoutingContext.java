@@ -56,4 +56,7 @@ class RoutingContext extends AbstractContext {
         return null;
     }
     
+    String getUploadPath() {
+        return this.uploadPath;
+    }
 }

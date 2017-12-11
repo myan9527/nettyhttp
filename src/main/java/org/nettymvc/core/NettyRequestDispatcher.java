@@ -45,7 +45,6 @@ import io.netty.handler.codec.http.multipart.Attribute;
 import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory;
 import io.netty.handler.codec.http.multipart.FileUpload;
 import io.netty.handler.codec.http.multipart.HttpDataFactory;
-import io.netty.handler.codec.http.multipart.HttpPostMultipartRequestDecoder;
 import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
 import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.util.CharsetUtil;
@@ -214,12 +213,8 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
                 }
                 break;
             case Constants.FORM:
-                if (decoder != null) {
-                    decoder.cleanFiles();
-                    decoder = null;
-                }
-                decoder = new HttpPostRequestDecoder(FACTORY, request, CharsetUtil.UTF_8);
-                for (InterfaceHttpData data : decoder.getBodyHttpDatas()) {
+                resetDecoder(request);
+                for (InterfaceHttpData data : this.decoder.getBodyHttpDatas()) {
                     if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.Attribute) {
                         Attribute attribute = (Attribute) data;
                         params.add(new FormParam(attribute.getName(), attribute.getValue()));
@@ -228,15 +223,16 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
                 break;
             case Constants.MULTI_PART:
                 // process binary parameters.
-                HttpPostMultipartRequestDecoder multipartRequestDecoder = new HttpPostMultipartRequestDecoder(FACTORY,
-                        request, CharsetUtil.UTF_8);
-                for (InterfaceHttpData data : multipartRequestDecoder.getBodyHttpDatas()) {
+                resetDecoder(request);
+//                HttpPostMultipartRequestDecoder multipartRequestDecoder = new HttpPostMultipartRequestDecoder(FACTORY,
+//                        request, CharsetUtil.UTF_8);
+                for (InterfaceHttpData data : this.decoder.getBodyHttpDatas()) {
                     if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.FileUpload) {
                         FileUpload fileUpload = (FileUpload) data;
                         if (fileUpload.isCompleted()) {
                             String fileName = fileUpload.getFilename();
                             // just create the disk file here.
-                            fileUpload.renameTo(new File(Constants.UPLOAD_PATH + fileName));
+                            fileUpload.renameTo(new File(routingContext.getUploadPath() + fileName));
                             params.add(new FileParam(fileName, data));
                         }
                     }
@@ -246,6 +242,14 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
                 throw new InvalidRequestException();
         }
         return getResponse(params, handler);
+    }
+    
+    private void resetDecoder(HttpRequest request) {
+        if (decoder != null) {
+            decoder.cleanFiles();
+            decoder = null;
+        }
+        decoder = new HttpPostRequestDecoder(FACTORY, request, CharsetUtil.UTF_8);
     }
     
     private String getRequestContentType() {
