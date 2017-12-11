@@ -40,6 +40,8 @@ public interface Constants {
     
     String CONNECTION_KEEP_ALIVE = "keep-alive";
     
+    String CONTENT_TYPE = "Content-Type";
+    
     String JSON = "application/json";
     
     String FORM = "application/x-www-form-urlencoded";

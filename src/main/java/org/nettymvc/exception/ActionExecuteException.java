@@ -29,7 +29,7 @@ package org.nettymvc.exception;
  */
 public class ActionExecuteException extends RuntimeException {
     
-    public ActionExecuteException(ReflectiveOperationException e) {
-    
+    public ActionExecuteException(Exception e) {
+        super(ExceptionMessage.ACTION_EXECUTE_ERROR.getMessage(), e);
     }
 }

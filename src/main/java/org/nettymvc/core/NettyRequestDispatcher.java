@@ -25,16 +25,19 @@ package org.nettymvc.core;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.multipart.Attribute;
@@ -51,6 +54,7 @@ import org.nettymvc.data.HttpHeaderConstants;
 import org.nettymvc.data.QueryParam;
 import org.nettymvc.data.RequestParam;
 import org.nettymvc.data.response.NettyResponse;
+import org.nettymvc.exception.InvalidRequestException;
 import org.nettymvc.exception.InvalidResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +73,11 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     
     private final RoutingContext routingContext = RoutingContext.getRoutingContext();
     
-    private HttpHeaders headers;
+    private final ThreadLocal<HttpRequest> request = new ThreadLocal<>();
+    private final ThreadLocal<HttpHeaders> headers = ThreadLocal.withInitial(() -> {
+        HttpRequest req = request.get();
+        return req != null ? req.headers() : null;
+    });
     
     // decode our post requests
     private HttpPostRequestDecoder decoder;
@@ -82,19 +90,21 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             routingContext.init();
         // parse our request and send the mapped resource
         if (msg instanceof HttpRequest) {
-            HttpRequest request = (HttpRequest) msg;
-            headers = request.headers();
-            String uri = request.uri();
+            request.set((HttpRequest) msg);
+            headers.set(request.get().headers());
+            String uri = request.get().uri();
             
             if (uri.equalsIgnoreCase(Constants.FAVICON_ICO))
                 return; // discard the invalid request
             
             try {
-                doDispatch(request, uri, ctx);
+                doDispatch(request.get(), uri, ctx);
             } catch (Throwable e) {
-                LOGGER.error("Error occur:", e);
-                ReferenceCountUtil.release(msg);
+                LOGGER.error("Error occurs:", e);
                 throw e;
+            } finally {
+                // avoid OOM
+                ReferenceCountUtil.release(msg);
             }
         } else {
             ReferenceCountUtil.release(msg);// discard this request directly.
@@ -120,12 +130,12 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             // we need to cast this object for latter processing.
             response = doPost((FullHttpRequest) request, uri, params);
         } else {
-            throw new UnsupportedOperationException("We can not process such request at present.");
+            throw new InvalidRequestException();
         }
         // write response
-        if(response != null) {
+        if (response != null) {
             ChannelFuture future = ctx.channel().write(response);
-            if (!isShortConnection(request)) {
+            if (!isShortConnection()) {
                 future.addListener(ChannelFutureListener.CLOSE);
             }
         }
@@ -137,20 +147,17 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     }
     
     private FullHttpResponse getResponse(RequestParam params, ActionHandler handler) {
-        FullHttpResponse response;
-        if(handler != null) {
+        if (handler != null) {
             Object returnResult = ClassTracker.invokeMethod(routingContext.getSingletons().get(handler.getRouter()),
                     handler.getMethod(), params);
             if (returnResult instanceof NettyResponse) {
-                // we should just return it.
-                response = ((NettyResponse) returnResult).response();
+                return ((NettyResponse) returnResult).response();
             } else {
-                throw new InvalidResponseException("All response must be presented by NettyResponse!");
+                throw new InvalidResponseException();
             }
         } else {
-            response = Constants.NOT_FOUND_RESPONSE;
+            return Constants.NOT_FOUND_RESPONSE;
         }
-        return response;
     }
     
     private String processQueryParams(String uri, RequestParam params) {
@@ -159,8 +166,8 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
         if (uri.contains("?")) {
             uri = uri.substring(0, uri.indexOf("?"));
         }
-        LOGGER.info(String.format("Processing get request, path: %s", uri));
-        // just process our query params
+        LOGGER.info(String.format("Processing request for path: %s", uri));
+        // just process url query params
         for (Map.Entry<String, List<String>> attr : uriAttributes.entrySet()) {
             List<String> attrValue = attr.getValue();
             if (attrValue != null) {
@@ -181,22 +188,23 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         cause.printStackTrace();
-        LOGGER.error(cause.getMessage());
-        // TODO write exception response to client.
+        FullHttpResponse exceptionResponse = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+                HttpResponseStatus.INTERNAL_SERVER_ERROR,
+                Unpooled.copiedBuffer(cause.getMessage(), CharsetUtil.UTF_8));
+        ctx.channel().writeAndFlush(exceptionResponse);
         ctx.close();
     }
     
     private FullHttpResponse doPost(FullHttpRequest fullHttpRequest, String uri, RequestParam params) throws IOException {
         ActionHandler handler = this.routingContext.getActionHandler(uri, RequestMethod.POST);
-        // process our params first
         switch (getRequestContentType()) {
             // process different type of params.
             case Constants.JSON:
                 String content = fullHttpRequest.content().toString(CharsetUtil.UTF_8);
                 JSONObject object = JSON.parseObject(content);
-                if(object != null) {
+                if (object != null) {
                     for (Map.Entry<String, Object> entry : object.entrySet()) {
-                        params.add(new FormParam(entry.getKey(),entry.getValue()));
+                        params.add(new FormParam(entry.getKey(), entry.getValue()));
                     }
                 }
                 break;
@@ -214,7 +222,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
                 }
                 break;
             case Constants.MULTI_PART:
-                // process file upload here.
+                // process binary parameters.
                 LOGGER.info("Processing uploaded files....");
                 break;
             default:
@@ -224,12 +232,12 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     }
     
     private String getRequestContentType() {
-        return headers.get("Content-Type").split(":")[0];
+        return headers.get().get(Constants.CONTENT_TYPE).split(":")[0];
     }
     
-    private boolean isShortConnection(HttpRequest request) {
-        return headers.contains(HttpHeaderConstants.CONNECTION, Constants.CONNECTION_CLOSE, true) ||
-                (request.protocolVersion().equals(HttpVersion.HTTP_1_0) &&
-                        !headers.contains(HttpHeaderConstants.CONNECTION, Constants.CONNECTION_KEEP_ALIVE, true));
+    private boolean isShortConnection() {
+        return headers.get().contains(HttpHeaderConstants.CONNECTION, Constants.CONNECTION_CLOSE, true) ||
+                (request.get().protocolVersion().equals(HttpVersion.HTTP_1_0) &&
+                        !headers.get().contains(HttpHeaderConstants.CONNECTION, Constants.CONNECTION_KEEP_ALIVE, true));
     }
 }

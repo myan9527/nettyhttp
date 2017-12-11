@@ -24,11 +24,12 @@
 package org.nettymvc.exception;
 
 /**
- * Created by myan on 12/6/2017.
+ * Created by myan on 12/11/2017.
  * Intellij IDEA
  */
-public class InvalidResponseException extends RuntimeException {
-    public InvalidResponseException() {
-        super(ExceptionMessage.INVALID_RESPONSE_ERROR.getMessage());
+public class InvalidRequestException extends RuntimeException {
+    
+    public InvalidRequestException() {
+        super(ExceptionMessage.INVALID_REQUEST_ERROR.getMessage());
     }
 }
