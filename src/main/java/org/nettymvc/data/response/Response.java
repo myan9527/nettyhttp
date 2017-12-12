@@ -23,40 +23,17 @@
 */
 package org.nettymvc.data.response;
 
-import com.alibaba.fastjson.JSON;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
-import io.netty.util.CharsetUtil;
-import org.nettymvc.Constants;
 
 /**
- * Created by myan on 12/6/2017.
+ * Created by myan on 12/12/2017.
  * Intellij IDEA
  */
-public class JsonResponse extends NettyResponse {
+public interface Response {
     
-    @Override
-    public FullHttpResponse response() {
-        ByteBuf content = this.content();
-        DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, content);
-        response.headers().add(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
-        response.headers().add(HttpHeaderNames.CONTENT_TYPE, Constants.JSON);
-        return response;
-    }
+    void setHtmlContent(String htmlContent);
     
-    @Override
-    protected ByteBuf content() {
-        // FIXME use pooled buffer instead of this unpooled usage.
-        if (this.paramMap != null && !this.paramMap.isEmpty()) {
-            return Unpooled.copiedBuffer(JSON.toJSON(paramMap).toString(), CharsetUtil.UTF_8);
-        } else {
-            return Unpooled.EMPTY_BUFFER;
-        }
-    }
+    void put(String name, Object data);
     
+    FullHttpResponse response();
 }

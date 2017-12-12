@@ -21,31 +21,34 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 */
-package org.nettymvc.data.response;
+package org.nettymvc.core;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
-
-import java.util.HashMap;
-import java.util.Map;
+import freemarker.template.Configuration;
 
 /**
- * Created by myan on 12/6/2017.
+ * Created by myan on 12/12/2017.
  * Intellij IDEA
  */
-abstract class NettyResponse implements Response {
-    protected Map<String, Object> paramMap = new HashMap<>();
+
+public class TemplateContext extends AbstractContext {
+    private final String templatePath;
+    private final Configuration markerConfig;
     
-    public void put(String name, Object data) {
-        this.paramMap.put(name, data);
+    TemplateContext() {
+        super();
+        this.templatePath = config.templatePath();
+        // now config the freemarker here.
+        markerConfig = new Configuration(Configuration.VERSION_2_3_0);
+//        markerConfig.setDirectoryForTemplateLoading();
     }
     
-    protected abstract ByteBuf content();
     
-    protected static final PooledByteBufAllocator ALLOCATOR = PooledByteBufAllocator.DEFAULT;
+    public static TemplateContext getTemplateContext() {
+        return null;
+//        return (TemplateContext) getSingletons().get(TemplateContext.class);
+    }
     
-    @Override
-    public void setHtmlContent(String htmlContent) {
-        // do nothing here.
+    public Configuration getMarkerConfig() {
+        return markerConfig;
     }
 }

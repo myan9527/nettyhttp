@@ -32,7 +32,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.http.HttpRequestDecoder;
+import io.netty.handler.codec.http.HttpResponseEncoder;
 import org.aeonbits.owner.ConfigFactory;
 import org.nettymvc.config.ServerConfig;
 import org.nettymvc.core.NettyRequestDispatcher;
@@ -77,9 +78,10 @@ public class DefaultHttpServer {
                         @Override
                         protected void initChannel(SocketChannel channel) {
                             channel.pipeline()
-                                    .addLast("codec", new HttpServerCodec())
-                                    // add for post request
+                                    .addLast("request-decoder", new HttpRequestDecoder())
+                                    // transfer different http message
                                     .addLast("post", new HttpObjectAggregator(1024 * 1024))
+                                    .addLast("response-encoder", new HttpResponseEncoder())
                                     .addLast("handler", new NettyRequestDispatcher());
                         }
                     })

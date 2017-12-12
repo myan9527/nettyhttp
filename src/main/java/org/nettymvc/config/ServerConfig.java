@@ -43,4 +43,9 @@ public interface ServerConfig extends Config {
     
     @Config.Key("router.basePackage")
     String basePackage();
+    
+    @Config.Key("template.path")
+    @DefaultValue("classpath:\\templates")
+    String templatePath();
+    
 }

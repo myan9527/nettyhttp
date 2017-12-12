@@ -48,6 +48,10 @@ public interface Constants {
     
     String MULTI_PART = "multipart/form-data";
     
+    String HTML_RESPONSE = "text/html;charset=UTF-8";
+    
+    String PACKAGE_INFO = "org.nettymvc.core";
+    
     DefaultFullHttpResponse NOT_FOUND_RESPONSE = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
             HttpResponseStatus.NOT_FOUND,
             Unpooled.copiedBuffer("Not found this url.", CharsetUtil.UTF_8));

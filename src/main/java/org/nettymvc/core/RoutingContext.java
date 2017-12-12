@@ -33,12 +33,15 @@ import java.util.Map;
  * Intellij IDEA
  */
 class RoutingContext extends AbstractContext {
+    private final String uploadPath;
+    
     private static class InstanceHolder {
         private static final RoutingContext INSTANCE = new RoutingContext();
     }
     
     private RoutingContext() {
         super();
+        this.uploadPath = config.uploadPath();
     }
     
     static RoutingContext getRoutingContext() {

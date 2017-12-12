@@ -55,7 +55,7 @@ import org.nettymvc.data.FileParam;
 import org.nettymvc.data.FormParam;
 import org.nettymvc.data.QueryParam;
 import org.nettymvc.data.RequestParam;
-import org.nettymvc.data.response.NettyResponse;
+import org.nettymvc.data.response.Response;
 import org.nettymvc.exception.InvalidRequestException;
 import org.nettymvc.exception.InvalidResponseException;
 import org.slf4j.Logger;
@@ -153,8 +153,8 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
         if (handler != null) {
             Object returnResult = ClassTracker.invokeMethod(routingContext.getSingletons().get(handler.getRouter()),
                     handler.getMethod(), params);
-            if (returnResult instanceof NettyResponse) {
-                return ((NettyResponse) returnResult).response();
+            if (returnResult instanceof Response) {
+                return ((Response) returnResult).response();
             } else {
                 throw new InvalidResponseException();
             }
@@ -204,7 +204,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             // process different type of params.
             case Constants.JSON:
                 // cast here for content processing.
-                String content = ((FullHttpRequest)request).content().toString(CharsetUtil.UTF_8);
+                String content = ((FullHttpRequest) request).content().toString(CharsetUtil.UTF_8);
                 JSONObject object = JSON.parseObject(content);
                 if (object != null) {
                     for (Map.Entry<String, Object> entry : object.entrySet()) {
@@ -255,7 +255,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     private String getRequestContentType() {
         // refer to https://stackoverflow.com/questions/3508338/what-is-the-boundary-in-multipart-form-data
         String contentType = headers.get().get(Constants.CONTENT_TYPE).split(":")[0];
-        if(contentType.indexOf(";") != 0)
+        if (contentType.contains(";"))
             return contentType.substring(0, contentType.indexOf(";"));
         return contentType;
     }

@@ -3,6 +3,7 @@
 Used 3-rd party libraries:
 - Netty
 - Fastjson
+- Freemarker
 - Logback
 - Owner
 - Apache commons
@@ -37,4 +38,4 @@ public class BasicRouter {
     }
 }
 ``` 
-Now, we only support GET/POST method, response data type will include plain txt/json/html.
+Now, we only support GET/POST method, response data type will include plain txt/json/html, html template engine: freemarker.
