@@ -23,7 +23,12 @@
 */
 package org.nettymvc.core;
 
+import freemarker.cache.FileTemplateLoader;
 import freemarker.template.Configuration;
+import org.nettymvc.exception.InitializeException;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * Created by myan on 12/12/2017.
@@ -31,24 +36,36 @@ import freemarker.template.Configuration;
  */
 
 public class TemplateContext extends AbstractContext {
-    private final String templatePath;
     private final Configuration markerConfig;
+    private static TemplateContext INSTANCE;
+    private static final String CLASSPATH = "classpath:";
     
-    TemplateContext() {
-        super();
-        this.templatePath = config.templatePath();
-        // now config the freemarker here.
-        markerConfig = new Configuration(Configuration.VERSION_2_3_0);
-//        markerConfig.setDirectoryForTemplateLoading();
+    private TemplateContext() {
+        String templatePath = config.templatePath();
+        this.markerConfig = new Configuration(Configuration.VERSION_2_3_0);
+        try {
+            if(templatePath.startsWith(CLASSPATH)) {
+                // resolve path from classpath root.
+                String[] paths = templatePath.split(CLASSPATH);
+                if(paths.length == 2) {
+                    markerConfig.setTemplateLoader(new FileTemplateLoader(
+                            new File(TemplateContext.class.getResource("/").getFile().substring(1) + paths[1])
+                    ));
+                }
+            }
+        } catch (IOException e) {
+            throw new InitializeException(e);
+        }
     }
     
-    
     public static TemplateContext getTemplateContext() {
-        return null;
-//        return (TemplateContext) getSingletons().get(TemplateContext.class);
+        if(INSTANCE == null)
+            INSTANCE = new TemplateContext();
+        return INSTANCE;
     }
     
     public Configuration getMarkerConfig() {
         return markerConfig;
     }
+    
 }

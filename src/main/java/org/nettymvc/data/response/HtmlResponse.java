@@ -23,6 +23,8 @@
 */
 package org.nettymvc.data.response;
 
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
@@ -34,6 +36,10 @@ import io.netty.util.CharsetUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.nettymvc.Constants;
 import org.nettymvc.core.TemplateContext;
+import org.nettymvc.exception.ActionExecuteException;
+
+import java.io.IOException;
+import java.io.PrintWriter;
 
 /**
  * Created by myan on 12/6/2017.
@@ -49,11 +55,11 @@ public class HtmlResponse extends NettyResponse {
     }
     
     public HtmlResponse(String templateName) {
-        super();
         this.templateName = templateName;
     }
     
     @Override
+    
     public FullHttpResponse response() {
         FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, this.content());
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, Constants.HTML_RESPONSE);
@@ -66,14 +72,14 @@ public class HtmlResponse extends NettyResponse {
         ByteBuf byteBuf = null;
         if (StringUtils.isNotEmpty(htmlContent)) {
             byteBuf = Unpooled.copiedBuffer(this.htmlContent, CharsetUtil.UTF_8);
-        } else {
-            // TODO resolve freemarker template here
-//            try (PrintWriter out = new PrintWriter()) {
-//                Template template = CONTEXT.getMarkerConfig().getTemplate(templateName);
-//                template.pro
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
+        } else if(StringUtils.isNotEmpty(templateName)) {
+            try (ByteBufWriter out = new ByteBufWriter()) {
+                Template template = CONTEXT.getMarkerConfig().getTemplate(templateName);
+                template.process(this.paramMap, out);
+                return out.getByteBuf();
+            } catch (IOException | TemplateException e) {
+                throw new ActionExecuteException(e);
+            }
         }
         return byteBuf;
     }

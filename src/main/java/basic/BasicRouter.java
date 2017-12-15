@@ -62,7 +62,7 @@ public class BasicRouter {
         Response response = new HtmlResponse("test");
         response.put("data", "server data");
         response.put("strings", new String[]{"abc", "dfr", "klo"});
-        response.setHtmlContent("<h1>Sample html content.</h1>");
+//        response.setHtmlContent("<h1>Sample html content.</h1>");
         return response;
     }
     
