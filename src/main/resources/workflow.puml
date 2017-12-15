@@ -1,0 +1,16 @@
+@startuml
+
+Client -> NettyServer: call for response
+NettyServer -> Dispatcher: call for routing process
+Dispatcher --> RoutingContext: init
+RoutingContext --> Dispatcher: build action map, inject singletons
+Dispatcher -> Param: build request param
+Dispatcher -> RoutingContext: search for action handler
+RoutingContext -> Dispatcher: certain action handler
+Dispatcher -> ActionHandler: invoke control method
+ActionHandler -> Dispatcher: invoke result
+Dispatcher -> Response: build the response
+Response -> Dispatcher: response result
+Dispatcher -> NettyServer: wrapped resonse data
+NettyServer -> Client: send response
+@enduml
