@@ -30,7 +30,7 @@ import io.netty.handler.codec.http.FullHttpResponse;
  * Intellij IDEA
  */
 public interface Response {
-    
+    @Deprecated
     void setHtmlContent(String htmlContent);
     
     void put(String name, Object data);

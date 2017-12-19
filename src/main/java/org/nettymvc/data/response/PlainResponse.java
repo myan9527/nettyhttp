@@ -30,7 +30,7 @@ import io.netty.handler.codec.http.FullHttpResponse;
  * Created by myan on 12/6/2017.
  * Intellij IDEA
  */
-public class PlainResponse extends NettyResponse {
+public class PlainResponse extends AbstractResponse {
     @Override
     public FullHttpResponse response() {
         return null;

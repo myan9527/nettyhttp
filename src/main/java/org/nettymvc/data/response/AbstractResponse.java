@@ -33,9 +33,10 @@ import java.util.Map;
  * Created by myan on 12/6/2017.
  * Intellij IDEA
  */
-abstract class NettyResponse implements Response {
+abstract class AbstractResponse implements Response {
     protected Map<String, Object> paramMap = new HashMap<>();
     
+    @Override
     public void put(String name, Object data) {
         this.paramMap.put(name, data);
     }

@@ -35,7 +35,7 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.nettymvc.Constants;
-import org.nettymvc.core.TemplateContext;
+import org.nettymvc.core.TemplateResolver;
 import org.nettymvc.exception.ActionExecuteException;
 
 import java.io.IOException;
@@ -45,8 +45,7 @@ import java.io.StringWriter;
  * Created by myan on 12/6/2017.
  * Intellij IDEA
  */
-public class HtmlResponse extends NettyResponse {
-    private static final TemplateContext CONTEXT = TemplateContext.getTemplateContext();
+public class HtmlResponse extends AbstractResponse {
     
     private String templateName;
     private String htmlContent;
@@ -75,7 +74,7 @@ public class HtmlResponse extends NettyResponse {
             try (StringWriter writer = new StringWriter()
 //                    ByteBufWriter out = new ByteBufWriter()
             ) {
-                Template template = CONTEXT.getMarkerConfig().getTemplate(templateName + ".ftl",
+                Template template = TemplateResolver.getMarkerConfig().getTemplate(templateName + ".ftl",
                         String.valueOf(CharsetUtil.UTF_8));
                 template.process(this.paramMap, writer);
                 byteBuf = Unpooled.copiedBuffer(writer.getBuffer().toString(), CharsetUtil.UTF_8);

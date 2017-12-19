@@ -34,39 +34,30 @@ import java.io.File;
  * Intellij IDEA
  */
 
-public class TemplateContext {
-    private final Configuration markerConfig;
-    private static TemplateContext INSTANCE;
+public class TemplateResolver {
+    private static Configuration markerConfig;
     private static final String CLASSPATH = "classpath:";
     
-    private TemplateContext() {
-        String templatePath = AbstractContext.getConfig().templatePath();
-        this.markerConfig = new Configuration(Configuration.VERSION_2_3_0);
-        try {
-            if (templatePath.startsWith(CLASSPATH)) {
-                // resolve path from classpath root.
-                String[] paths = templatePath.split(CLASSPATH);
-                if (paths.length == 2) {
-                    // target/classes/templates
-                    String path = TemplateContext.class.getResource("/").getFile().substring(1) + paths[1] + File.separator;
-                    this.markerConfig.setTemplateLoader(new FileTemplateLoader(new File(path)));
+    public static Configuration getMarkerConfig() {
+        if(markerConfig == null) {
+            String templatePath = AbstractContext.getConfig().templatePath();
+            markerConfig = new Configuration(Configuration.VERSION_2_3_0);
+            try {
+                if (templatePath.startsWith(CLASSPATH)) {
+                    // resolve path from classpath root.
+                    String[] paths = templatePath.split(CLASSPATH);
+                    if (paths.length == 2) {
+                        // target/classes/templates
+                        String path = TemplateResolver.class.getResource("/").getFile().substring(1) + paths[1] + File.separator;
+                        markerConfig.setTemplateLoader(new FileTemplateLoader(new File(path)));
+                    }
+                } else {
+                    throw new IllegalStateException("The template path must start with classpath.");
                 }
-            } else {
-                throw new IllegalStateException("The template path must start with classpath.");
+            } catch (Exception e) {
+                throw new InitializeException(e);
             }
-        } catch (Exception e) {
-            throw new InitializeException(e);
         }
-    }
-    
-    public static TemplateContext getTemplateContext() {
-        if (INSTANCE == null) {
-            INSTANCE = new TemplateContext();
-        }
-        return INSTANCE;
-    }
-    
-    public Configuration getMarkerConfig() {
         return markerConfig;
     }
     

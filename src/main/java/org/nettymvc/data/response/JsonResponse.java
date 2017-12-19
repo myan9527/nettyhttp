@@ -38,7 +38,7 @@ import org.nettymvc.Constants;
  * Created by myan on 12/6/2017.
  * Intellij IDEA
  */
-public class JsonResponse extends NettyResponse {
+public class JsonResponse extends AbstractResponse {
     
     @Override
     public FullHttpResponse response() {
