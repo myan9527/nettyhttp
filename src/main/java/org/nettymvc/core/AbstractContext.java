@@ -45,7 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
 class AbstractContext {
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractContext.class);
     
-    final ServerConfig config = ConfigFactory.create(ServerConfig.class);
+    private static final ServerConfig CONFIG = ConfigFactory.create(ServerConfig.class);
     
     private final Object lock = new Object();
     
@@ -61,7 +61,7 @@ class AbstractContext {
     final Map<RoutingRequest, ActionHandler> actionMap = new ConcurrentHashMap<>();
     
     AbstractContext() {
-        this.basePackage = config.basePackage();
+        this.basePackage = CONFIG.basePackage();
         init();
     }
     
@@ -71,13 +71,15 @@ class AbstractContext {
             Set<Class<?>> classes = ClassTracker.loadClasses(basePackage);
             synchronized (this.lock) {
                 for (Class<?> clazz : classes) {
-                    if (clazz.isAnnotationPresent(Router.class))
+                    if (clazz.isAnnotationPresent(Router.class)) {
                         routers.add(clazz);
+                    }
                     SINGLETONS.put(clazz, ClassTracker.newInstance(clazz));
                 }
                 // let's build action map for processing requests
-                if (!routers.isEmpty())
+                if (!routers.isEmpty()) {
                     buildActionMap();
+                }
                 initialized = true;
             }
         }
@@ -108,5 +110,9 @@ class AbstractContext {
     
     Map<Class<?>, Object> getSingletons() {
         return SINGLETONS;
+    }
+    
+    public static ServerConfig getConfig() {
+        return CONFIG;
     }
 }

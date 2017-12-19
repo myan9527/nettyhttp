@@ -24,31 +24,29 @@
 package org.nettymvc.core;
 
 import freemarker.cache.FileTemplateLoader;
-import freemarker.cache.TemplateLoader;
 import freemarker.template.Configuration;
 import org.nettymvc.exception.InitializeException;
 
 import java.io.File;
-import java.io.IOException;
 
 /**
  * Created by myan on 12/12/2017.
  * Intellij IDEA
  */
 
-public class TemplateContext extends AbstractContext {
+public class TemplateContext {
     private final Configuration markerConfig;
     private static TemplateContext INSTANCE;
     private static final String CLASSPATH = "classpath:";
     
     private TemplateContext() {
-        String templatePath = config.templatePath();
+        String templatePath = AbstractContext.getConfig().templatePath();
         this.markerConfig = new Configuration(Configuration.VERSION_2_3_0);
         try {
-            if(templatePath.startsWith(CLASSPATH)) {
+            if (templatePath.startsWith(CLASSPATH)) {
                 // resolve path from classpath root.
                 String[] paths = templatePath.split(CLASSPATH);
-                if(paths.length == 2) {
+                if (paths.length == 2) {
                     // target/classes/templates
                     String path = TemplateContext.class.getResource("/").getFile().substring(1) + paths[1] + File.separator;
                     this.markerConfig.setTemplateLoader(new FileTemplateLoader(new File(path)));
@@ -62,7 +60,7 @@ public class TemplateContext extends AbstractContext {
     }
     
     public static TemplateContext getTemplateContext() {
-        if(INSTANCE == null) {
+        if (INSTANCE == null) {
             INSTANCE = new TemplateContext();
         }
         return INSTANCE;

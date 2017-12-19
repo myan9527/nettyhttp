@@ -174,10 +174,11 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
         for (Map.Entry<String, List<String>> attr : uriAttributes.entrySet()) {
             List<String> attrValue = attr.getValue();
             if (attrValue != null) {
-                if (attrValue.size() == 1)
+                if (attrValue.size() == 1) {
                     params.add(new QueryParam(attr.getKey(), attrValue.get(0)));
-                else
+                } else {
                     params.add(new QueryParam(attr.getKey(), attrValue));
+                }
             }
         }
         return uri;

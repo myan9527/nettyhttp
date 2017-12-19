@@ -71,7 +71,7 @@ public class HtmlResponse extends NettyResponse {
         ByteBuf byteBuf = null;
         if (StringUtils.isNotEmpty(htmlContent)) {
             byteBuf = Unpooled.copiedBuffer(this.htmlContent, CharsetUtil.UTF_8);
-        } else if(StringUtils.isNotEmpty(templateName)) {
+        } else if (StringUtils.isNotEmpty(templateName)) {
             try (StringWriter writer = new StringWriter()
 //                    ByteBufWriter out = new ByteBufWriter()
             ) {

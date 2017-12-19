@@ -41,7 +41,7 @@ class RoutingContext extends AbstractContext {
     
     private RoutingContext() {
         super();
-        this.uploadPath = config.uploadPath();
+        this.uploadPath = getConfig().uploadPath();
     }
     
     static RoutingContext getRoutingContext() {
@@ -52,8 +52,9 @@ class RoutingContext extends AbstractContext {
         for (Map.Entry<RoutingRequest, ActionHandler> entry : actionMap.entrySet()) {
             RequestMethod[] allowedMethods = entry.getKey().getRequestMethods();
             if (entry.getKey().getPath().equals(path)) {
-                if (Arrays.asList(allowedMethods).containsAll(Arrays.asList(requestMethods)))
+                if (Arrays.asList(allowedMethods).containsAll(Arrays.asList(requestMethods))) {
                     return entry.getValue();
+                }
             }
         }
         return null;

@@ -33,7 +33,7 @@ import java.io.Writer;
  * Created by myan on 12/15/2017.
  * Intellij IDEA
  */
-final class ByteBufWriter extends Writer{
+final class ByteBufWriter extends Writer {
     
     private volatile boolean isOpen;
     private final ByteBuf byteBuf;
@@ -82,7 +82,7 @@ final class ByteBufWriter extends Writer{
     }
     
     private void ensureOpen() throws IOException {
-        if(!this.isOpen) {
+        if (!this.isOpen) {
             throw new IOException("Stream closed!");
         }
     }
