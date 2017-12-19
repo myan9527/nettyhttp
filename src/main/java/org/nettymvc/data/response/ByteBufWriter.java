@@ -82,8 +82,9 @@ final class ByteBufWriter extends Writer{
     }
     
     private void ensureOpen() throws IOException {
-        if(!this.isOpen)
+        if(!this.isOpen) {
             throw new IOException("Stream closed!");
+        }
     }
     
 }

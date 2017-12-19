@@ -24,6 +24,7 @@
 package org.nettymvc.core;
 
 import freemarker.cache.FileTemplateLoader;
+import freemarker.cache.TemplateLoader;
 import freemarker.template.Configuration;
 import org.nettymvc.exception.InitializeException;
 
@@ -48,19 +49,22 @@ public class TemplateContext extends AbstractContext {
                 // resolve path from classpath root.
                 String[] paths = templatePath.split(CLASSPATH);
                 if(paths.length == 2) {
-                    markerConfig.setTemplateLoader(new FileTemplateLoader(
-                            new File(TemplateContext.class.getResource("/").getFile().substring(1) + paths[1])
-                    ));
+                    // target/classes/templates
+                    String path = TemplateContext.class.getResource("/").getFile().substring(1) + paths[1] + File.separator;
+                    this.markerConfig.setTemplateLoader(new FileTemplateLoader(new File(path)));
                 }
+            } else {
+                throw new IllegalStateException("The template path must start with classpath.");
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new InitializeException(e);
         }
     }
     
     public static TemplateContext getTemplateContext() {
-        if(INSTANCE == null)
+        if(INSTANCE == null) {
             INSTANCE = new TemplateContext();
+        }
         return INSTANCE;
     }
     

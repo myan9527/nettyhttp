@@ -39,7 +39,7 @@ import org.nettymvc.core.TemplateContext;
 import org.nettymvc.exception.ActionExecuteException;
 
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.StringWriter;
 
 /**
  * Created by myan on 12/6/2017.
@@ -59,7 +59,6 @@ public class HtmlResponse extends NettyResponse {
     }
     
     @Override
-    
     public FullHttpResponse response() {
         FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, this.content());
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, Constants.HTML_RESPONSE);
@@ -73,10 +72,13 @@ public class HtmlResponse extends NettyResponse {
         if (StringUtils.isNotEmpty(htmlContent)) {
             byteBuf = Unpooled.copiedBuffer(this.htmlContent, CharsetUtil.UTF_8);
         } else if(StringUtils.isNotEmpty(templateName)) {
-            try (ByteBufWriter out = new ByteBufWriter()) {
-                Template template = CONTEXT.getMarkerConfig().getTemplate(templateName);
-                template.process(this.paramMap, out);
-                return out.getByteBuf();
+            try (StringWriter writer = new StringWriter()
+//                    ByteBufWriter out = new ByteBufWriter()
+            ) {
+                Template template = CONTEXT.getMarkerConfig().getTemplate(templateName + ".ftl",
+                        String.valueOf(CharsetUtil.UTF_8));
+                template.process(this.paramMap, writer);
+                byteBuf = Unpooled.copiedBuffer(writer.getBuffer().toString(), CharsetUtil.UTF_8);
             } catch (IOException | TemplateException e) {
                 throw new ActionExecuteException(e);
             }

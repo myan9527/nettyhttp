@@ -55,8 +55,9 @@ public class DefaultHttpServer {
     public static void main(String[] args) {
         ServerConfig config = ConfigFactory.create(ServerConfig.class);
         int port = config.port();
-        if (args.length > 0)
+        if (args.length > 0) {
             port = Integer.parseInt(args[0]);
+        }
         try {
             new DefaultHttpServer(port).start();
         } catch (InterruptedException e) {
