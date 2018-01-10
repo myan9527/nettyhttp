@@ -37,8 +37,9 @@ public class RequestParam {
     private List<Param> params;
     
     public void add(Param param) {
-        if (this.params == null || this.params.isEmpty())
+        if (this.params == null || this.params.isEmpty()) {
             params = new LinkedList<>();
+        }
         this.params.add(param);
     }
     
@@ -48,8 +49,9 @@ public class RequestParam {
             for (Param param : this.params) {
                 String fieldName = param.getFieldName();
                 Object fieldValue = param.getFieldValue();
-                if (fieldMap.containsKey(fieldName))
+                if (fieldMap.containsKey(fieldName)) {
                     fieldValue = fieldMap.get(fieldName) + "," + fieldValue;
+                }
                 fieldMap.put(fieldName, fieldValue);
             }
         }
@@ -76,7 +78,4 @@ public class RequestParam {
         return CastUtil.castLong(getFieldMap().get(fieldName));
     }
     
-    public List<Param> getParams() {
-        return params;
-    }
 }

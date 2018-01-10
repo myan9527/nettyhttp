@@ -76,12 +76,6 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     
     private final RoutingContext routingContext = RoutingContext.getRoutingContext();
     
-    private final ThreadLocal<HttpRequest> request = new ThreadLocal<>();
-    private final ThreadLocal<HttpHeaders> headers = ThreadLocal.withInitial(() -> {
-        HttpRequest req = request.get();
-        return req != null ? req.headers() : null;
-    });
-    
     // decode our post requests
     private HttpPostRequestDecoder decoder;
     private static final HttpDataFactory FACTORY = new DefaultHttpDataFactory(DefaultHttpDataFactory.MAXSIZE);
@@ -89,19 +83,21 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         // check routing init status
-        if (!routingContext.isInitialized())
+        if (!routingContext.isInitialized()) {
             routingContext.init();
+        }
         // parse our request and send the mapped resource
         if (msg instanceof HttpRequest) {
-            request.set((HttpRequest) msg);
-            headers.set(request.get().headers());
-            String uri = request.get().uri();
+            HttpRequest request = (HttpRequest) msg;
+            HttpHeaders headers = request.headers();
+            String uri = request.uri();
             
-            if (uri.equalsIgnoreCase(Constants.FAVICON_ICO))
+            if (uri.equalsIgnoreCase(Constants.FAVICON_ICO)) {
                 return; // discard the invalid request
+            }
             
             try {
-                doDispatch(request.get(), uri, ctx);
+                doDispatch(request, uri, ctx);
             } catch (Throwable e) {
                 LOGGER.error("Error occurs:", e);
                 throw e;
@@ -110,11 +106,12 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
                 ReferenceCountUtil.release(msg);
             }
         } else {
-            ReferenceCountUtil.release(msg);// discard this request directly.
+            // discard this request directly.
+            ReferenceCountUtil.release(msg);
         }
     }
     
-    /*
+    /**
      * process request:
      * 1.parse uri
      * 2.build the params
@@ -138,7 +135,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
         // write response
         if (response != null) {
             ChannelFuture future = ctx.channel().write(response);
-            if (!isShortConnection()) {
+            if (!isShortConnection(request)) {
                 future.addListener(ChannelFutureListener.CLOSE);
             }
         }
@@ -201,7 +198,7 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
     
     private FullHttpResponse doPost(HttpRequest request, String uri, RequestParam params) throws IOException {
         ActionHandler handler = this.routingContext.getActionHandler(uri, RequestMethod.POST);
-        switch (getRequestContentType()) {
+        switch (getRequestContentType(request)) {
             // process different type of params.
             case Constants.JSON:
                 // cast here for content processing.
@@ -225,14 +222,12 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
             case Constants.MULTI_PART:
                 // process binary parameters.
                 resetDecoder(request);
-//                HttpPostMultipartRequestDecoder multipartRequestDecoder = new HttpPostMultipartRequestDecoder(FACTORY,
-//                        request, CharsetUtil.UTF_8);
                 for (InterfaceHttpData data : this.decoder.getBodyHttpDatas()) {
                     if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.FileUpload) {
                         FileUpload fileUpload = (FileUpload) data;
                         if (fileUpload.isCompleted()) {
                             String fileName = fileUpload.getFilename();
-                            // just create the disk file here.
+                            // FIXME just create the disk file here.
                             fileUpload.renameTo(new File(routingContext.getUploadPath() + fileName));
                             params.add(new FileParam(fileName, data));
                         }
@@ -253,17 +248,19 @@ public class NettyRequestDispatcher extends ChannelInboundHandlerAdapter {
         decoder = new HttpPostRequestDecoder(FACTORY, request, CharsetUtil.UTF_8);
     }
     
-    private String getRequestContentType() {
+    private String getRequestContentType(HttpRequest request) {
         // refer to https://stackoverflow.com/questions/3508338/what-is-the-boundary-in-multipart-form-data
-        String contentType = headers.get().get(Constants.CONTENT_TYPE).split(":")[0];
-        if (contentType.contains(";"))
+        String contentType = request.headers().get(Constants.CONTENT_TYPE).split(":")[0];
+        if (contentType.contains(";")) {
             return contentType.substring(0, contentType.indexOf(";"));
+        }
         return contentType;
     }
     
-    private boolean isShortConnection() {
-        return headers.get().contains(HttpHeaderNames.CONNECTION, Constants.CONNECTION_CLOSE, true) ||
-                (request.get().protocolVersion().equals(HttpVersion.HTTP_1_0) &&
-                        !headers.get().contains(HttpHeaderNames.CONNECTION, Constants.CONNECTION_KEEP_ALIVE, true));
+    private boolean isShortConnection(HttpRequest request) {
+        HttpHeaders headers = request.headers();
+        return headers.contains(HttpHeaderNames.CONNECTION, Constants.CONNECTION_CLOSE, true) ||
+                (request.protocolVersion().equals(HttpVersion.HTTP_1_0) &&
+                        !headers.contains(HttpHeaderNames.CONNECTION, Constants.CONNECTION_KEEP_ALIVE, true));
     }
 }

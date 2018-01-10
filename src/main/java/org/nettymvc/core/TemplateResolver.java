@@ -28,6 +28,7 @@ import freemarker.template.Configuration;
 import org.nettymvc.exception.InitializeException;
 
 import java.io.File;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by myan on 12/12/2017.
@@ -39,7 +40,13 @@ public class TemplateResolver {
     private static final String CLASSPATH = "classpath:";
     
     public static Configuration getMarkerConfig() {
+        ReentrantLock lock = new ReentrantLock();
         if(markerConfig == null) {
+            try {
+                lock.lockInterruptibly();
+            } catch (InterruptedException e) {
+                throw new InitializeException(e);
+            }
             String templatePath = AbstractContext.getConfig().templatePath();
             markerConfig = new Configuration(Configuration.VERSION_2_3_0);
             try {
@@ -56,7 +63,10 @@ public class TemplateResolver {
                 }
             } catch (Exception e) {
                 throw new InitializeException(e);
+            } finally {
+                lock.unlock();
             }
+            
         }
         return markerConfig;
     }
