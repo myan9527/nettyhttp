@@ -25,6 +25,7 @@ package org.nettymvc.data.response;
 
 import com.alibaba.fastjson.JSON;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
@@ -51,9 +52,10 @@ public class JsonResponse extends AbstractResponse {
     
     @Override
     protected ByteBuf content() {
-        // FIXME use pooled buffer instead of this unpooled usage.
         if (this.paramMap != null && !this.paramMap.isEmpty()) {
-            return Unpooled.copiedBuffer(JSON.toJSON(paramMap).toString(), CharsetUtil.UTF_8);
+            ByteBuf byteBuf = PooledByteBufAllocator.DEFAULT.directBuffer();
+            byteBuf.writeCharSequence(JSON.toJSON(paramMap).toString(), CharsetUtil.UTF_8);
+            return byteBuf;
         } else {
             return Unpooled.EMPTY_BUFFER;
         }

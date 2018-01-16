@@ -26,6 +26,7 @@ package org.nettymvc.data.response;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
@@ -71,13 +72,15 @@ public class HtmlResponse extends AbstractResponse {
         if (StringUtils.isNotEmpty(htmlContent)) {
             byteBuf = Unpooled.copiedBuffer(this.htmlContent, CharsetUtil.UTF_8);
         } else if (StringUtils.isNotEmpty(templateName)) {
-            try (StringWriter writer = new StringWriter()
+            try (
+                    StringWriter writer = new StringWriter();
 //                    ByteBufWriter out = new ByteBufWriter()
             ) {
                 Template template = TemplateResolver.getMarkerConfig().getTemplate(templateName + ".ftl",
                         String.valueOf(CharsetUtil.UTF_8));
                 template.process(this.paramMap, writer);
-                byteBuf = Unpooled.copiedBuffer(writer.getBuffer().toString(), CharsetUtil.UTF_8);
+                byteBuf = PooledByteBufAllocator.DEFAULT.directBuffer();
+                byteBuf.writeCharSequence(writer.getBuffer().toString(), CharsetUtil.UTF_8);
             } catch (IOException | TemplateException e) {
                 throw new ActionExecuteException(e);
             }

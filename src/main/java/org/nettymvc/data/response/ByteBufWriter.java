@@ -24,7 +24,7 @@
 package org.nettymvc.data.response;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.PooledByteBufAllocator;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -46,7 +46,7 @@ final class ByteBufWriter extends Writer {
     ByteBufWriter() {
         this.lock = new Object();
         this.isOpen = true;
-        this.byteBuf = ByteBufAllocator.DEFAULT.buffer();
+        this.byteBuf = PooledByteBufAllocator.DEFAULT.directBuffer();
     }
     
     @Override
@@ -69,10 +69,12 @@ final class ByteBufWriter extends Writer {
             } else if (len == 0) {
                 return;
             }
+            // FIXME: try to avoid this extra memory copy!
+            StringBuilder builder = new StringBuilder();
             for (char c : cbuf) {
-                this.byteBuf.setByte(off, c);
-                ++off;
+                builder.append(c);
             }
+            this.byteBuf.writeBytes(builder.toString().getBytes());
         }
     }
     
