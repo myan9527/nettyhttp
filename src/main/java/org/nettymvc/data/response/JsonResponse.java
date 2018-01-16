@@ -25,34 +25,37 @@ package org.nettymvc.data.response;
 
 import com.alibaba.fastjson.JSON;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
 import org.nettymvc.Constants;
-import org.nettymvc.data.HttpHeaderConstants;
 
 /**
  * Created by myan on 12/6/2017.
  * Intellij IDEA
  */
-public class JsonResponse extends NettyResponse {
+public class JsonResponse extends AbstractResponse {
     
     @Override
     public FullHttpResponse response() {
         ByteBuf content = this.content();
         DefaultFullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, content);
-        response.headers().add(HttpHeaderConstants.CONTENT_LENGTH, content.readableBytes());
-        response.headers().add(HttpHeaderConstants.CONTENT_TYPE, Constants.JSON);
+        response.headers().add(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
+        response.headers().add(HttpHeaderNames.CONTENT_TYPE, Constants.JSON);
         return response;
     }
     
     @Override
     protected ByteBuf content() {
-        if(this.contentMap != null && !this.contentMap.isEmpty()) {
-            return Unpooled.copiedBuffer(JSON.toJSON(contentMap).toString(), CharsetUtil.UTF_8);
+        if (this.paramMap != null && !this.paramMap.isEmpty()) {
+            ByteBuf byteBuf = PooledByteBufAllocator.DEFAULT.directBuffer();
+            byteBuf.writeCharSequence(JSON.toJSON(paramMap).toString(), CharsetUtil.UTF_8);
+            return byteBuf;
         } else {
             return Unpooled.EMPTY_BUFFER;
         }

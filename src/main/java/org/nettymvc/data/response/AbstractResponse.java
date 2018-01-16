@@ -24,7 +24,7 @@
 package org.nettymvc.data.response;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.buffer.PooledByteBufAllocator;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,14 +33,20 @@ import java.util.Map;
  * Created by myan on 12/6/2017.
  * Intellij IDEA
  */
-public abstract class NettyResponse {
-    protected Map<String, Object> contentMap = new HashMap<>();
+abstract class AbstractResponse implements Response {
+    protected Map<String, Object> paramMap = new HashMap<>();
     
-    public abstract FullHttpResponse response();
-    
+    @Override
     public void put(String name, Object data) {
-        this.contentMap.put(name, data);
+        this.paramMap.put(name, data);
     }
     
     protected abstract ByteBuf content();
+    
+    protected static final PooledByteBufAllocator ALLOCATOR = PooledByteBufAllocator.DEFAULT;
+    
+    @Override
+    public void setHtmlContent(String htmlContent) {
+        // do nothing here.
+    }
 }

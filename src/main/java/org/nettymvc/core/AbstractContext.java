@@ -27,7 +27,7 @@ import org.aeonbits.owner.ConfigFactory;
 import org.nettymvc.annotation.Action;
 import org.nettymvc.annotation.RequestMethod;
 import org.nettymvc.annotation.Router;
-import org.nettymvc.config.RoutingConfig;
+import org.nettymvc.config.ServerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +45,8 @@ import java.util.concurrent.ConcurrentHashMap;
 class AbstractContext {
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractContext.class);
     
+    private static final ServerConfig CONFIG = ConfigFactory.create(ServerConfig.class);
+    
     private final Object lock = new Object();
     
     private volatile boolean initialized;
@@ -53,14 +55,13 @@ class AbstractContext {
     
     // holds all routers.
     private final Set<Class<?>> routers = new HashSet<>();
-    // TODO holds all injected singletons, will enhance this IOC function.
-    private final Map<Class<?>, Object> singletons = new HashMap<>();
+    // holds all injected singletons.
+    private final static Map<Class<?>, Object> SINGLETONS = new HashMap<>();
     
     final Map<RoutingRequest, ActionHandler> actionMap = new ConcurrentHashMap<>();
     
     AbstractContext() {
-        RoutingConfig config = ConfigFactory.create(RoutingConfig.class);
-        this.basePackage = config.basePackage();
+        this.basePackage = CONFIG.basePackage();
         init();
     }
     
@@ -70,20 +71,22 @@ class AbstractContext {
             Set<Class<?>> classes = ClassTracker.loadClasses(basePackage);
             synchronized (this.lock) {
                 for (Class<?> clazz : classes) {
-                    if (clazz.isAnnotationPresent(Router.class))
+                    if (clazz.isAnnotationPresent(Router.class)) {
                         routers.add(clazz);
+                    }
+                    SINGLETONS.put(clazz, ClassTracker.newInstance(clazz));
                 }
                 // let's build action map for processing requests
-                if (!routers.isEmpty())
+                if (!routers.isEmpty()) {
                     buildActionMap();
-                this.initialized = true;
+                }
+                initialized = true;
             }
         }
     }
     
     private void buildActionMap() {
         for (Class<?> router : routers) {
-            this.singletons.put(router, ClassTracker.newInstance(router));
             Method[] methods = router.getDeclaredMethods();
             for (Method method : methods) {
                 if (method.isAnnotationPresent(Action.class)) {
@@ -106,6 +109,10 @@ class AbstractContext {
     }
     
     Map<Class<?>, Object> getSingletons() {
-        return singletons;
+        return SINGLETONS;
+    }
+    
+    public static ServerConfig getConfig() {
+        return CONFIG;
     }
 }

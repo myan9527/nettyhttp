@@ -23,21 +23,17 @@
 */
 package org.nettymvc.data.response;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.FullHttpResponse;
 
 /**
- * Created by myan on 12/6/2017.
+ * Created by myan on 12/12/2017.
  * Intellij IDEA
  */
-public class PlainResponse extends AbstractResponse {
-    @Override
-    public FullHttpResponse response() {
-        return null;
-    }
+public interface Response {
+    @Deprecated
+    void setHtmlContent(String htmlContent);
     
-    @Override
-    protected ByteBuf content() {
-        return null;
-    }
+    void put(String name, Object data);
+    
+    FullHttpResponse response();
 }

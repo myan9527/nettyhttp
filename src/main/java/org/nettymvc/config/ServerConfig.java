@@ -36,4 +36,16 @@ public interface ServerConfig extends Config {
     @Config.Key("server.port")
     @DefaultValue("8000")
     int port();
+    
+    @Config.Key("file.uploadpath")
+    @DefaultValue("\\temp\\")
+    String uploadPath();
+    
+    @Config.Key("router.basePackage")
+    String basePackage();
+    
+    @Config.Key("template.path")
+    @DefaultValue("classpath:\\templates")
+    String templatePath();
+    
 }

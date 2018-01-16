@@ -27,8 +27,9 @@ import org.nettymvc.annotation.Action;
 import org.nettymvc.annotation.RequestMethod;
 import org.nettymvc.annotation.Router;
 import org.nettymvc.data.RequestParam;
+import org.nettymvc.data.response.HtmlResponse;
 import org.nettymvc.data.response.JsonResponse;
-import org.nettymvc.data.response.NettyResponse;
+import org.nettymvc.data.response.Response;
 
 import java.util.Date;
 
@@ -40,19 +41,29 @@ import java.util.Date;
 public class BasicRouter {
     
     @Action(value = "/act", method = {RequestMethod.GET})
-    public NettyResponse act(RequestParam param) {
-        NettyResponse response = new JsonResponse();
+    public Response act(RequestParam param) {
+        Response response = new JsonResponse();
         response.put("date", new Date());
         response.put("name", "Michael Yan");
         System.out.println("Query params:" + param.getInt("id"));
         return response;
     }
     
-    @Action(value="/post", method = {RequestMethod.POST})
-    public NettyResponse testPost(RequestParam param) {
-        NettyResponse response = new JsonResponse();
+    @Action(value = "/post", method = {RequestMethod.POST})
+    public Response testPost(RequestParam param) {
+        Response response = new JsonResponse();
         response.put("param", param);
         response.put("date", new Date().toString());
         return response;
     }
+    
+    @Action(value = "/view", method = {RequestMethod.POST})
+    public Response testView(RequestParam param) {
+        Response response = new HtmlResponse("test");
+        response.put("data", "server data");
+        response.put("strings", new String[]{"abc", "dfr", "klo"});
+        /* response.setHtmlContent("<h1>Sample html content.</h1>"); */
+        return response;
+    }
+    
 }

@@ -23,25 +23,73 @@
 */
 package org.nettymvc.data.response;
 
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
+import io.netty.util.CharsetUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.nettymvc.Constants;
+import org.nettymvc.core.TemplateResolver;
+import org.nettymvc.exception.ActionExecuteException;
+
+import java.io.IOException;
+import java.io.StringWriter;
 
 /**
  * Created by myan on 12/6/2017.
  * Intellij IDEA
  */
-public class HtmlResponse extends NettyResponse {
+public class HtmlResponse extends AbstractResponse {
+    
+    private String templateName;
+    private String htmlContent;
+    
+    public HtmlResponse() {
+    }
+    
+    public HtmlResponse(String templateName) {
+        this.templateName = templateName;
+    }
+    
     @Override
     public FullHttpResponse response() {
-        return null;
+        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, this.content());
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, Constants.HTML_RESPONSE);
+        response.headers().set(HttpHeaderNames.CONTENT_LENGTH, this.content().readableBytes());
+        return response;
     }
     
     @Override
     protected ByteBuf content() {
-        return null;
+        ByteBuf byteBuf = null;
+        if (StringUtils.isNotEmpty(htmlContent)) {
+            byteBuf = Unpooled.copiedBuffer(this.htmlContent, CharsetUtil.UTF_8);
+        } else if (StringUtils.isNotEmpty(templateName)) {
+            try (
+                    StringWriter writer = new StringWriter();
+//                    ByteBufWriter out = new ByteBufWriter()
+            ) {
+                Template template = TemplateResolver.getMarkerConfig().getTemplate(templateName + ".ftl",
+                        String.valueOf(CharsetUtil.UTF_8));
+                template.process(this.paramMap, writer);
+                byteBuf = PooledByteBufAllocator.DEFAULT.directBuffer();
+                byteBuf.writeCharSequence(writer.getBuffer().toString(), CharsetUtil.UTF_8);
+            } catch (IOException | TemplateException e) {
+                throw new ActionExecuteException(e);
+            }
+        }
+        return byteBuf;
     }
     
-    public void setHtmlTemplate() {
-    
+    @Override
+    public void setHtmlContent(final String html) {
+        this.htmlContent = html;
     }
 }
